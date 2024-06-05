@@ -13,18 +13,18 @@ return new class extends Migration
     {
         Schema::create('fishdatas', function (Blueprint $table) {
             $table->id();
-        $table->string('Common_Name');
-        $table->string('Scientific_Name');
-        $table->string('Aquarium_Size');
-        $table->string('Habitat', 1000)->nullable();
-        $table->string('Max_Standard_length');
-        $table->string('Temperature');
-        $table->string('PH');
-        $table->string('Diet');
-        $table->string('Behavior/Compatability');
-        $table->string('Sexual_Dimorphisms', 500);
-        $table->string('Reproduction', 1000);
-        $table->string('Notes', 1000);
+            $table->string('common_name');
+            $table->string('scientific_name');
+            $table->string('aquarium_size');
+            $table->string('habitat', 1000)->nullable();
+            $table->string('max_standard_length');
+            $table->string('temperature');
+            $table->string('ph');
+            $table->string('diet');
+            $table->string('behavior');
+            $table->string('sexual_dimorphisms', 500);
+            $table->string('reproduction', 1000);
+            $table->string('notes', 1000);
         });
     }
 
