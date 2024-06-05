@@ -16,14 +16,35 @@ class RangeAnalyseService
      */
     public function parseRange(string $rangeStr): array
     {
-        // Split the range string by the separator " – " (en dash)
-        $parts = explode(" – ", $rangeStr);
+        // Normalize the input string
+        $rangeStr = trim($rangeStr);
+
+        // Replace different types of dashes with a single delimiter
+        $rangeStr = str_replace(['–', '—', '-'], '–', $rangeStr); // en dash, em dash, hyphen to en dash
+
+        // Split the range string by the en dash
+        $parts = explode("–", $rangeStr);
+
+        // Trim any whitespace around the parts
+        $parts = array_map('trim', $parts);
+
+        // Check if we have exactly 2 parts
         if (count($parts) !== 2) {
             throw new InvalidArgumentException("Invalid range string format.");
         }
-        // Convert the parts to float
-        return [floatval($parts[0]), floatval($parts[1])];
+
+        // Convert the parts to float and ensure they are valid numbers
+        if (!is_numeric($parts[0]) || !is_numeric($parts[1])) {
+            throw new InvalidArgumentException("Range values must be numeric.");
+        }
+
+        $start = floatval($parts[0]);
+        $end = floatval($parts[1]);
+
+        return [$start, $end];
     }
+
+
 
     /**
      * Calculate the overlap percentage and range for three temperature ranges.
@@ -34,7 +55,7 @@ class RangeAnalyseService
      * @return array
      * @throws InvalidArgumentException
      */
-    public function calculateOverlap(string $range1Str, string $range2Str):array
+    public function calculateOverlap(string $range1Str, string $range2Str): array
     {
         // Parse the range strings into numeric values
         list($range1Start, $range1End) = $this->parseRange($range1Str);

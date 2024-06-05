@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
-class SizeComparisonService
+use InvalidArgumentException;
+
+class SizeAnalyseService
 {
     protected $categories = [
         'A' => [0, 50],
@@ -25,8 +27,31 @@ class SizeComparisonService
 
     public function getAverageSize($sizeRange)
     {
-        $sizes = explode('–', str_replace(' ', '', $sizeRange));
-        $average = (floatval($sizes[0]) + floatval($sizes[1])) / 2;
+        $rangeStr = trim($sizeRange);
+
+        // Replace different types of dashes with a single delimiter
+        $rangeStr = str_replace(['–', '—', '-'], '–', $rangeStr); // en dash, em dash, hyphen to en dash
+
+        // Split the range string by the en dash
+        $parts = explode("–", $rangeStr);
+
+        // Trim any whitespace around the parts
+        $parts = array_map('trim', $parts);
+
+        // Check if we have exactly 2 parts
+        if (count($parts) !== 2) {
+            throw new InvalidArgumentException("Invalid range string format.");
+        }
+
+        // Convert the parts to float and ensure they are valid numbers
+        if (!is_numeric($parts[0]) || !is_numeric($parts[1])) {
+            throw new InvalidArgumentException("Range values must be numeric.");
+        }
+
+        $start = floatval($parts[0]);
+        $end = floatval($parts[1]);
+        $average = ($start + $end) / 2;
+
         return $average;
     }
 

@@ -14,17 +14,17 @@
             @csrf
             <select name="fish1" id="fish1">
                 @foreach ($fishes as $fish)
-                    <option value="{{ $fish->id }}">{{ $fish->Common_Name }}</option>
+                    <option value="{{ $fish->id }}">{{ $fish->common_name }}</option>
                 @endforeach
             </select>
             <select name="fish2" id="fish2">
                 @foreach ($fishes as $fish)
-                    <option value="{{ $fish->id }}">{{ $fish->Common_Name }}</option>
+                    <option value="{{ $fish->id }}">{{ $fish->common_name }}</option>
                 @endforeach
             </select>
             <select name="fish3" id="fish3">
                 @foreach ($fishes as $fish)
-                    <option value="{{ $fish->id }}">{{ $fish->Common_Name }}</option>
+                    <option value="{{ $fish->id }}">{{ $fish->common_name }}</option>
                 @endforeach
             </select>
             <button type="submit">Submit</button>
@@ -52,6 +52,15 @@
             @endforeach
         </ul>
     @endif
+
+    @if (isset($data))
+        <div>
+            {!! print_r($data) !!}
+            {!! print_r($result) !!}
+        </div>
+    @endif
+
+
 </body>
 
 </html>
