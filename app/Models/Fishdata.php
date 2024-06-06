@@ -9,7 +9,7 @@ class Fishdata extends Model
 {
     public $timestamps = false;
     use HasFactory;
-    Protected $fillable =  [
-        'Common_Name','Scientific_Name', 'Aquarium_Size','Habitat','Max_Standard_length', 'Temperature', 'PH', 'Diet', 'Behavior/Compatability', 'Sexual_Dimorphisms','Reproduction' ,'Notes'
+    protected $fillable =  [
+        'common_name', 'scientific_name', 'aquarium_size', 'habitat', 'max_standard_length', 'temperature', 'ph', 'diet', 'behavior', 'sexual_dimorphisms', 'reproduction', 'notes'
     ];
 }
