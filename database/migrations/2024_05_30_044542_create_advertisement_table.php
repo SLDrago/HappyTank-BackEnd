@@ -23,8 +23,8 @@ return new class extends Migration
             $table->string('image_url_5')->nullable();
             $table->string('price');
             $table->string('price_based_on');
-            $table->string('phone_number');
-            $table->string('email');
+            // $table->string('phone_number');
+            // $table->string('email');
             $table->string('category');
             $table->boolean('status');
             $table->string('tags');
