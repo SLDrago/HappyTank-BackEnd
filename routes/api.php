@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdvertisementController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ChatController;
@@ -18,10 +19,17 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::get('/verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->name('verification.verify');
 Route::get('auth/google', [AuthController::class, 'redirectToGoogle']);
 Route::get('auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
-Route::post('/selected-fish-compatibility', [FishController::class, 'getSelectedFishCompatibility']);
-Route::post('/chat', ChatController::class);
 Route::post('/forgot-password', [AuthController::class, 'sendResetLinkEmail']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+
+Route::post('/selected-fish-compatibility', [FishController::class, 'getSelectedFishCompatibility']);
+
+Route::post('/chat', ChatController::class);
+
+Route::post('/advertisement/getTopRatedAdvertisements', [AdvertisementController::class, 'getTopRatedAdvertisements']);
+Route::post('/advertisement/loadAdvertisementsByCategory', [AdvertisementController::class, 'loadAdvertisementsByCategory']);
+Route::post('/advertisement/filterAdvertisements', [AdvertisementController::class, 'filterAdvertisements']);
+Route::post('/advertisement/searchRelatedAdvertisements', [AdvertisementController::class, 'searchRelatedAdvertisements']);
 
 //Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -29,11 +37,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logoutAll', [AuthController::class, 'logoutAll']);
     Route::post('/send-verification-email', [AuthController::class, 'sendVerificationEmail']);
 
+    Route::post('/advertisement/getAdvertisementById', [AdvertisementController::class, 'getAdvertisementById']);
 
     Route::middleware('role:user')->group(function () {
         Route::get('/user-info/exists', [InformationController::class, 'hasUserInfo']); // Check if user information exists (true/false)
         Route::get('/user-info/get', [InformationController::class, 'getUserInfo']);
         Route::post('/user-info/update', [InformationController::class, 'updateUserInfo']);
+
+        Route::post('/advertisement/addAdvertisement', [AdvertisementController::class, 'addAdvertisement']);
+        Route::post('/advertisement/deleteAdvertisement', [AdvertisementController::class, 'deleteAdvertisement']);
+        Route::post('/advertisement/updateAdvertisement', [AdvertisementController::class, 'updateAdvertisement']);
+        Route::post('/advertisement/getUserAdvertisements', [AdvertisementController::class, 'getUserAdvertisements']);
+
         // User-specific routes
     });
 
@@ -41,10 +56,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/shop-info/exists', [InformationController::class, 'hasShopInfo']); // Check if shop information exists (true/false)
         Route::get('/shop-info/get', [InformationController::class, 'getShopInfo']);
         Route::post('/shop-info/update', [InformationController::class, 'updateShopInfo']);
+
+        Route::post('/advertisement/addAdvertisement', [AdvertisementController::class, 'addAdvertisement']);
+        Route::post('/advertisement/deleteAdvertisement', [AdvertisementController::class, 'deleteAdvertisement']);
+        Route::post('/advertisement/updateAdvertisement', [AdvertisementController::class, 'updateAdvertisement']);
+        Route::post('/advertisement/getUserAdvertisements', [AdvertisementController::class, 'getUserAdvertisements']);
         // Shop-specific routes
     });
 
     Route::middleware('role:admin')->group(function () {
+        Route::post('/advertisement/setAdvertisementStatus', [AdvertisementController::class, 'setAdvertisementStatus']);
         // Admin-specific routes
     });
 });
