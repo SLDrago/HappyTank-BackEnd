@@ -16,24 +16,21 @@ return new class extends Migration
             $table->string('title');
             $table->string('small_description');
             $table->text('description');
-            $table->string('image_url_1');
-            $table->string('image_url_2');
-            $table->string('image_url_3')->nullable();
-            $table->string('image_url_4')->nullable();
-            $table->string('image_url_5')->nullable();
-            $table->string('price');
+            $table->decimal('price', 10, 2);
             $table->string('price_based_on');
-            // $table->string('phone_number');
-            // $table->string('email');
-            $table->string('category');
-            $table->boolean('status');
+            $table->unsignedBigInteger('category_id');
+            $table->boolean('status')->default(true);
             $table->string('tags');
-            $table->unsignedBigInteger('views');
-            $table->unsignedBigInteger('shop_id')->nullable();
-            $table->foreign('shop_id')->references('id')->on('shop');
-            $table->unsignedBigInteger('user_id')->nullable();
-            $table->foreign('user_id')->references('id')->on('users');
+            $table->unsignedBigInteger('views')->default(0);
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamps();
+
+            // Indexes
+            $table->index('category_id');
+            $table->index('status');
+            $table->index('user_id');
+            $table->index('price');
+            $table->index('tags');
         });
     }
 

@@ -16,6 +16,7 @@ class ShopInfo extends Model
         'owner_name',
         'description',
         'physical_address',
+        'city',
         'phone_number',
         'category',
         'gps_coordinates',
