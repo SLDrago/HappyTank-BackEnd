@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('reported_content', function (Blueprint $table) {
             $table->id();
-            $table->enum('content_type', ['Advertisement', 'Comment', 'Review', 'User']);
+            $table->enum('content_type', ['Advertisement', 'Comment', 'Review', 'User', 'Post']);
             $table->unsignedBigInteger('content_id');
             $table->unsignedBigInteger('reporter_id');
             $table->string('report_reason', 255);

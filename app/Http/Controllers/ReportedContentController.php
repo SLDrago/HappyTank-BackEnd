@@ -12,7 +12,7 @@ class ReportedContentController extends Controller
     public function addReport(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'content_type' => 'required|in:Advertisement,Comment,Review,User',
+            'content_type' => 'required|in:Advertisement,Comment,Review,User,Post',
             'content_id' => 'required|integer',
             'report_reason' => 'required|string|max:255',
         ]);
