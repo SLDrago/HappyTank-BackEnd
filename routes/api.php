@@ -7,7 +7,7 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\FishController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\InformationController;
-
+use App\Http\Controllers\ReviewController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -31,6 +31,10 @@ Route::post('/advertisement/loadAdvertisementsByCategory', [AdvertisementControl
 Route::post('/advertisement/filterAdvertisements', [AdvertisementController::class, 'filterAdvertisements']);
 Route::post('/advertisement/searchRelatedAdvertisements', [AdvertisementController::class, 'searchRelatedAdvertisements']);
 
+Route::post('/review/getRatingCounts', [ReviewController::class, 'getRatingCounts']);
+Route::post('/review/showReviewByID', [ReviewController::class, 'showReviewByID']);
+Route::post('/review/getReviewSummary', [ReviewController::class, 'getReviewSummary']);
+
 //Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -38,6 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/send-verification-email', [AuthController::class, 'sendVerificationEmail']);
 
     Route::post('/advertisement/getAdvertisementById', [AdvertisementController::class, 'getAdvertisementById']);
+
 
     Route::middleware('role:user')->group(function () {
         Route::get('/user-info/exists', [InformationController::class, 'hasUserInfo']); // Check if user information exists (true/false)
@@ -49,6 +54,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/advertisement/updateAdvertisement', [AdvertisementController::class, 'updateAdvertisement']);
         Route::post('/advertisement/getUserAdvertisements', [AdvertisementController::class, 'getUserAdvertisements']);
 
+        Route::post('/review/addReview', [ReviewController::class, 'addReview']);
+        Route::post('/review/updateReview', [ReviewController::class, 'updateReview']);
+        Route::post('/review/destroyReview', [ReviewController::class, 'destroyReview']);
         // User-specific routes
     });
 
@@ -66,6 +74,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('role:admin')->group(function () {
         Route::post('/advertisement/setAdvertisementStatus', [AdvertisementController::class, 'setAdvertisementStatus']);
+        Route::post('/advertisement/updateReviewStatus', [AdvertisementController::class, 'updateReviewStatus']);
+
+        Route::post('/review/updateReviewStatus', [ReviewController::class, 'updateReviewStatus']);
         // Admin-specific routes
     });
 });
