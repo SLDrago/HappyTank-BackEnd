@@ -8,6 +8,7 @@ use App\Http\Controllers\FishController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\InformationController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\ReportedContentController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -17,8 +18,8 @@ Route::get('/user', function (Request $request) {
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->name('verification.verify');
-Route::get('auth/google', [AuthController::class, 'redirectToGoogle']);
-Route::get('auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
+Route::get('/auth/google', [AuthController::class, 'redirectToGoogle']);
+Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
 Route::post('/forgot-password', [AuthController::class, 'sendResetLinkEmail']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
@@ -43,6 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/advertisement/getAdvertisementById', [AdvertisementController::class, 'getAdvertisementById']);
 
+    Route::post('/report/addReport', [ReportedContentController::class, 'addReport']);
 
     Route::middleware('role:user')->group(function () {
         Route::get('/user-info/exists', [InformationController::class, 'hasUserInfo']); // Check if user information exists (true/false)
@@ -77,6 +79,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/advertisement/updateReviewStatus', [AdvertisementController::class, 'updateReviewStatus']);
 
         Route::post('/review/updateReviewStatus', [ReviewController::class, 'updateReviewStatus']);
+
+        Route::post('/report/updateReport', [ReportedContentController::class, 'updateReport']);
+        Route::post('/report/destroyReport', [ReportedContentController::class, 'destroyReport']);
         // Admin-specific routes
     });
 });
