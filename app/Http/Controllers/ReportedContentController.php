@@ -71,4 +71,19 @@ class ReportedContentController extends Controller
 
         return response()->json(['message' => 'Report deleted successfully'], 200);
     }
+
+    public function showReportsByType(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'content_type' => 'required|in:Advertisement,Comment,Review,User,Post',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $reports = ReportedContent::where('content_type', $request->content_type)->get();
+
+        return response()->json(['reports' => $reports], 200);
+    }
 }
