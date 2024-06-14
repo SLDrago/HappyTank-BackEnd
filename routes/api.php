@@ -82,6 +82,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/report/updateReport', [ReportedContentController::class, 'updateReport']);
         Route::post('/report/destroyReport', [ReportedContentController::class, 'destroyReport']);
+        Route::post('/report/showReportsByType', [ReportedContentController::class, 'showReportsByType']);
         // Admin-specific routes
     });
 });
