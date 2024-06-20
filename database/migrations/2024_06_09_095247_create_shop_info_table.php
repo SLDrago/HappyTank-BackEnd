@@ -17,11 +17,13 @@ return new class extends Migration
             $table->string('owner_name');
             $table->string('description')->nullable();
             $table->string('phone_number');
-            $table->string('category');
+            $table->string('address');
+            $table->unsignedBigInteger('city_id');
             $table->json('gps_coordinates');
             $table->json('working_hours');
             $table->json('socialmedia_links')->nullable();
             $table->timestamps();
+            $table->foreign('city_id')->references('id')->on('cities')->onDelete('cascade');
         });
     }
 

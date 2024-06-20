@@ -25,14 +25,12 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
-            ]);
+            return response()->json(['error' => 'Unauthorized'], 401);
         }
 
         return response()->json([
             'token' => $user->createToken($request->device_name)->plainTextToken,
-            'user' => $user,
+            'user' => $user
         ]);
     }
 
@@ -42,7 +40,7 @@ class AuthController extends Controller
             'name' => 'required|string',
             'email' => 'required|string|unique:users,email',
             'password' => 'required|string|confirmed',
-            'role' => 'required|string'
+            'role' => 'required|string|in:shop,user'
         ]);
 
         $user = User::create([
@@ -144,7 +142,7 @@ class AuthController extends Controller
                 $user = User::create([
                     'name' => $googleUser->getName(),
                     'email' => $googleUser->getEmail(),
-                    'password' => Hash::make(uniqid()), // You might want to generate a more secure password
+                    'password' => Hash::make(uniqid()),
                     'google_id' => $googleUser->getId(),
                     'profile_photo_path' => $googleUser->getAvatar(),
                     'email_verified_at' => now(),
@@ -190,5 +188,10 @@ class AuthController extends Controller
         } else {
             return response()->json(['message' => 'Invalid verification link']);
         }
+    }
+
+    public function user(Request $request)
+    {
+        return response()->json($request->user());
     }
 }

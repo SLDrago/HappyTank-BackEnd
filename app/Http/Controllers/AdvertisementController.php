@@ -7,6 +7,7 @@ use App\Models\ShopInfo;
 use App\Models\Advertisement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Models\AdvertisementImage;
 use Illuminate\Support\Facades\DB;
@@ -30,9 +31,85 @@ class AdvertisementController extends Controller
     public function get_topAdvertisements(Request $request)
     {
         // Fetch top advertisements based on views
-        $topAdvertisements = $this->advertisement->orderBy('views', 'desc')->take(10)->get();
+        $topAdvertisements = $this->advertisement->orderBy('views', 'desc')->take(6)->get();
         return response()->json($topAdvertisements);
     }
+
+    // public function addAdvertisement(Request $request)
+    // {
+    //     try {
+    //         // Validate request fields
+    //         $fields = $request->validate([
+    //             'title' => 'required|string',
+    //             'small_description' => 'required|string',
+    //             'description' => 'required|string',
+    //             'image_url.*' => 'required|file|image|max:10240', // Allow multiple images
+    //             'price' => 'required|numeric',
+    //             'price_based_on' => 'required|string',
+    //             'category_id' => 'required|exists:categories,id',
+    //             'tags' => 'required|string'
+    //         ]);
+
+    //         // Get authenticated user ID
+    //         $user = Auth::user();
+    //         $user_id = $user->id;
+
+    //         // Create advertisement
+    //         $advertisement = Advertisement::create([
+    //             'title' => $fields['title'],
+    //             'small_description' => $fields['small_description'],
+    //             'description' => $fields['description'],
+    //             'price' => $fields['price'],
+    //             'price_based_on' => $fields['price_based_on'],
+    //             'category_id' => $fields['category_id'],
+    //             'tags' => $fields['tags'],
+    //             'user_id' => $user_id
+    //         ]);
+
+    //         // Handle image uploads to GCS
+    //         if ($request->hasFile('image_url')) {
+    //             foreach ($request->file('image_url') as $file) {
+    //                 // Store file in GCS and log file path
+    //                 $imagePath = Storage::disk('gcs')->put('advertisement_images', $file);
+    //                 if ($imagePath) {
+    //                     Log::info("Stored file path: " . $imagePath);
+
+    //                     // Generate public URL for the file and log URL
+    //                     $imageUrl = Storage::disk('gcs')->url($imagePath);
+    //                     Log::info("File URL: " . $imageUrl);
+
+    //                     // Create advertisement image record and log database action
+    //                     AdvertisementImage::create([
+    //                         'advertisement_id' => $advertisement->id,
+    //                         'image_url' => $imageUrl
+    //                     ]);
+    //                     Log::info("Stored image URL in database for advertisement ID: " . $advertisement->id);
+    //                 } else {
+    //                     Log::error("Failed to store file on GCS for advertisement ID: " . $advertisement->id);
+    //                 }
+    //             }
+    //         }
+
+    //         // Prepare success response
+    //         $response = [
+    //             'advertisement' => $advertisement,
+    //             'message' => 'Advertisement added successfully.'
+    //         ];
+
+    //         return response($response, 201);
+    //     } catch (Exception $e) {
+    //         // Log error for debugging
+    //         Log::error("Error adding advertisement: " . $e->getMessage());
+
+    //         // Prepare error response
+    //         $errorResponse = [
+    //             'message' => 'Failed to add advertisement.',
+    //             'error' => $e->getMessage()
+    //         ];
+
+    //         return response($errorResponse, 500);
+    //     }
+    // }
 
     public function addAdvertisement(Request $request)
     {
@@ -42,7 +119,7 @@ class AdvertisementController extends Controller
                 'title' => 'required|string',
                 'small_description' => 'required|string',
                 'description' => 'required|string',
-                'image_url' => 'required|file|image|max:10240', // Assuming a max size of 10MB for the image
+                'image_url.*' => 'required|file|image|max:10240', // Allow multiple images
                 'price' => 'required|numeric',
                 'price_based_on' => 'required|string',
                 'category_id' => 'required|exists:categories,id',
@@ -65,19 +142,39 @@ class AdvertisementController extends Controller
                 'user_id' => $user_id
             ]);
 
-            // Handle image upload to GCS
+            // Handle image uploads locally
             if ($request->hasFile('image_url')) {
-                $imagePath = $request->file('image_url')->store('advertisement_images', 'gcs');
+                foreach ($request->file('image_url') as $file) {
+                    try {
+                        // Store file locally and log file path
+                        $imagePath = $file->store('advertisement_images', 'public');
+                        if ($imagePath) {
 
-                // Manually construct the public URL
-                $bucketName = env('GCS_BUCKET');
-                $imageUrl = "https://storage.googleapis.com/{$bucketName}/{$imagePath}";
+                            // Generate public URL for the file and log URL
+                            $imageUrl = Storage::url($imagePath);
+                            Log::info("File URL: " . $imageUrl);
 
-                // Create advertisement image
-                AdvertisementImage::create([
-                    'advertisement_id' => $advertisement->id,
-                    'image_url' => $imageUrl
-                ]);
+                            // Create advertisement image record and log database action
+                            AdvertisementImage::create([
+                                'advertisement_id' => $advertisement->id,
+                                'image_url' => $imageUrl
+                            ]);
+                        } else {
+                            $errorResponse = [
+                                'message' => 'Failed to store images.'
+                            ];
+
+                            return response($errorResponse, 500);
+                        }
+                    } catch (Exception $e) {
+                        $errorResponse = [
+                            'message' => 'Failed to store images.',
+                            'error' => $e->getMessage()
+                        ];
+
+                        return response($errorResponse, 500);
+                    }
+                }
             }
 
             // Prepare success response
@@ -88,7 +185,6 @@ class AdvertisementController extends Controller
 
             return response($response, 201);
         } catch (Exception $e) {
-            // Prepare error response
             $errorResponse = [
                 'message' => 'Failed to add advertisement.',
                 'error' => $e->getMessage()
@@ -97,6 +193,8 @@ class AdvertisementController extends Controller
             return response($errorResponse, 500);
         }
     }
+
+
 
     public function deleteAdvertisement(Request $request)
     {
@@ -262,8 +360,8 @@ class AdvertisementController extends Controller
         try {
             // Query to get advertisements with the highest ratings
             $topRatedAdvertisements = Advertisement::with('images') // Eager load images relationship
-                ->leftJoin('advertisement_ratings', 'advertisements.id', '=', 'advertisement_ratings.advertisement_id')
-                ->select('advertisements.*', DB::raw('AVG(advertisement_ratings.rating) as avg_rating'))
+                ->leftJoin('reviews', 'advertisements.id', '=', 'reviews.advertisement_id')
+                ->select('advertisements.*', DB::raw('AVG(reviews.rating) as avg_rating'))
                 ->groupBy('advertisements.id')
                 ->orderByDesc('avg_rating')
                 ->limit(6) // Limit the number of top-rated advertisements
@@ -274,7 +372,11 @@ class AdvertisementController extends Controller
             foreach ($topRatedAdvertisements as $advertisement) {
                 $image = $advertisement->images->isNotEmpty() ? $advertisement->images->first()->image_url : null;
                 $response[] = [
-                    'advertisement' => $advertisement,
+                    'id' => $advertisement->id,
+                    'title' => $advertisement->title,
+                    'small_description' => $advertisement->small_description,
+                    'price' => $advertisement->price,
+                    'rating' => $advertisement->avg_rating,
                     'image_url' => $image,
                 ];
             }
@@ -343,7 +445,7 @@ class AdvertisementController extends Controller
             $minPrice = $request->min_price;
             $maxPrice = $request->max_price;
             $page = $request->page ?? 1;
-            $perPage = $request->per_page ?? 6; // Default to 5 advertisements per page
+            $perPage = $request->per_page ?? 6;
 
             // Start building the query
             $query = Advertisement::query();
@@ -358,7 +460,7 @@ class AdvertisementController extends Controller
 
             // Apply category filter if provided
             if ($category) {
-                $query->where('category', $category);
+                $query->where('category_id', $category);
             }
 
             // Apply city filter if provided
@@ -386,7 +488,7 @@ class AdvertisementController extends Controller
 
             // Paginate the results
             $advertisements = $query->with('images')
-                ->orderBy('created_at', 'desc') // Order by creation date, you can change this as per your preference
+                ->orderBy('created_at', 'desc')
                 ->paginate($perPage, ['*'], 'page', $page);
 
             // Prepare response with advertisement data and additional information
@@ -404,11 +506,20 @@ class AdvertisementController extends Controller
                 ];
             }
 
-            return response()->json(['advertisements' => $response], 200);
+            return response()->json([
+                'advertisements' => $response,
+                'meta' => [
+                    'current_page' => $advertisements->currentPage(),
+                    'last_page' => $advertisements->lastPage(),
+                    'per_page' => $advertisements->perPage(),
+                    'total' => $advertisements->total(),
+                ]
+            ], 200);
         } catch (Exception $e) {
             return response()->json(['message' => 'Failed to filter advertisements', 'error' => $e->getMessage()], 500);
         }
     }
+
 
     public function searchRelatedAdvertisements(Request $request)
     {

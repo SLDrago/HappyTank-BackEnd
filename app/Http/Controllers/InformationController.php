@@ -65,6 +65,8 @@ class InformationController extends Controller
             'physical_address' => 'required|string',
             'phone_number' => 'required|string',
             'category' => 'required|string',
+            'address' => 'required|string',
+            'city_id' => 'required|integer|exists:cities,id',
             'gps_coordinates' => 'required|array',
             'working_hours' => 'required|array',
             'socialmedia_links' => 'nullable|array',
@@ -110,7 +112,8 @@ class InformationController extends Controller
     public function updateUserInfo(Request $request)
     {
         $validatedData = $request->validate([
-            'phone_number' => 'required|string'
+            'phone_number' => 'required|string',
+            'city_id' => 'required|integer|exists:cities,id'
         ]);
         $user = Auth::user();
         $userInfo = UserInfo::where('user_id', $user->id)->first();
