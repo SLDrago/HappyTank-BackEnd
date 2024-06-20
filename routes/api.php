@@ -11,6 +11,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ReportedContentController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CityController;
+use App\Http\Controllers\UserController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -46,12 +47,20 @@ Route::get('/getCityByID', [CityController::class, 'show']); //
 Route::get('/getFishNames', [FishController::class, 'getFishNames']); //
 Route::get('/getFishById', [FishController::class, 'getFishById']); //
 
+
+
 //Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/logoutAll', [AuthController::class, 'logoutAll']);
     Route::post('/send-verification-email', [AuthController::class, 'sendVerificationEmail']);
+
+    Route::get('/user', [UserController::class, 'user']);
+    Route::post('/updatePassword', [UserController::class, 'updatePassword']);
+    Route::post('/updateBannerPhoto', [UserController::class, 'updateBannerPhoto']);
+    Route::post('/updateProfilePicture', [UserController::class, 'updateProfilePicture']);
+    Route::post('/removeProfile', [UserController::class, 'destroy']);
+    Route::post('/updateProfileNameEmail', [UserController::class, 'update']);
 
     Route::post('/advertisement/getAdvertisementById', [AdvertisementController::class, 'getAdvertisementById']);
 

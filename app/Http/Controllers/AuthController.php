@@ -189,9 +189,4 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid verification link']);
         }
     }
-
-    public function user(Request $request)
-    {
-        return response()->json($request->user());
-    }
 }
