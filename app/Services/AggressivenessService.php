@@ -18,15 +18,15 @@ class AggressivenessService
     public function getAggressivenessPercentage($input1, $input2)
     {
         if ($input1 == "Aggressive" && $input2 == "Aggressive") {
-            return "0";
+            return 0;
         } elseif ($input1 == "Not-Aggressive" && $input2 == "Not-Aggressive") {
-            return "100";
+            return 100;
         } elseif ($input1 == "Aggressive-Small" && $input2 == "Aggressive-Small") {
-            return "75";
+            return 75;
         } elseif (($input1 == "Aggressive" && $input2 == "Not-Aggressive") || ($input1 == "Not-Aggressive" && $input2 == "Aggressive")) {
-            return "0";
+            return 0;
         } elseif (($input1 == "Aggressive-Small" && $input2 == "Not-Aggressive") || ($input1 == "Not-Aggressive" && $input2 == "Aggressive-Small")) {
-            return "50";
+            return 50;
         } else {
             return "Invalid inputs";
         }
@@ -60,6 +60,12 @@ class AggressivenessService
             return 0;
         } elseif ($countAggressiveSmall == 1 && $countNotAggressive == 2) {
             return 50;
+        } elseif ($countAggressive == 2 && $countAggressiveSmall == 1) {
+            return 25;
+        } elseif ($countAggressiveSmall == 2 && $countAggressive == 1) {
+            return 25;
+        } elseif ($countAggressive == 1 && $countAggressiveSmall == 1 && $countNotAggressive == 1) {
+            return 33;
         } else {
             return "Invalid inputs";
         }

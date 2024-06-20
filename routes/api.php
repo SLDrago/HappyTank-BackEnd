@@ -9,6 +9,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\InformationController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ReportedContentController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CityController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -36,8 +38,17 @@ Route::post('/review/getRatingCounts', [ReviewController::class, 'getRatingCount
 Route::post('/review/showReviewByID', [ReviewController::class, 'showReviewByID']);
 Route::post('/review/getReviewSummary', [ReviewController::class, 'getReviewSummary']);
 
+Route::get('/getCategories', [CategoryController::class, 'getCategories']); //
+
+Route::get('/getAllCities', [CityController::class, 'index']); //
+Route::get('/getCityByID', [CityController::class, 'show']); //
+
+Route::get('/getFishNames', [FishController::class, 'getFishNames']); //
+Route::get('/getFishById', [FishController::class, 'getFishById']); //
+
 //Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/logoutAll', [AuthController::class, 'logoutAll']);
     Route::post('/send-verification-email', [AuthController::class, 'sendVerificationEmail']);
@@ -83,6 +94,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/report/updateReport', [ReportedContentController::class, 'updateReport']);
         Route::post('/report/destroyReport', [ReportedContentController::class, 'destroyReport']);
         Route::post('/report/showReportsByType', [ReportedContentController::class, 'showReportsByType']);
+
+        Route::post('/category/addCategory', [CategoryController::class, 'addCategory']);
+        Route::post('/category/updateCategory', [CategoryController::class, 'updateCategory']);
+        Route::post('/category/deleteCategory', [CategoryController::class, 'deleteCategory']);
+
+        Route::post('/city/addCity', [CityController::class, 'store']);
+        Route::post('/city/updateCity', [CityController::class, 'update']);
+        Route::post('/city/deleteCity', [CityController::class, 'destroy']);
+
+        Route::post('/fish/addFish', [FishController::class, 'addFish']);
+        Route::post('/fish/updateFish', [FishController::class, 'updateFish']);
+        Route::post('/fish/deleteFish', [FishController::class, 'deleteFish']);
         // Admin-specific routes
     });
 });
