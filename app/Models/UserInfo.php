@@ -14,6 +14,6 @@ class UserInfo extends Model
     protected $fillable = [
         'user_id',
         'phone_number',
-        'city'
+        'city_id'
     ];
 }

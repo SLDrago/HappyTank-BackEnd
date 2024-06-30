@@ -29,15 +29,19 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::post('/selected-fish-compatibility', [FishController::class, 'getSelectedFishCompatibility']);
 
 Route::post('/chat', ChatController::class);
+Route::post('/chat/getFishTankRecommendations', [ChatController::class, 'getFishTankRecommendations'])->middleware('throttle:10,1');
 
 Route::post('/advertisement/getTopRatedAdvertisements', [AdvertisementController::class, 'getTopRatedAdvertisements']);
 Route::post('/advertisement/loadAdvertisementsByCategory', [AdvertisementController::class, 'loadAdvertisementsByCategory']);
 Route::post('/advertisement/filterAdvertisements', [AdvertisementController::class, 'filterAdvertisements']);
 Route::post('/advertisement/searchRelatedAdvertisements', [AdvertisementController::class, 'searchRelatedAdvertisements']);
+Route::post('/advertisement/searchRelatedFishAdvertisements', [AdvertisementController::class, 'searchRelatedFishAdvertisements']);
+Route::post('/advertisement/getAdvertisementById', [AdvertisementController::class, 'getAdvertisementById']);
 
 Route::post('/review/getRatingCounts', [ReviewController::class, 'getRatingCounts']);
 Route::post('/review/showReviewByID', [ReviewController::class, 'showReviewByID']);
 Route::post('/review/getReviewSummary', [ReviewController::class, 'getReviewSummary']);
+Route::post('/review/getReviewByAdvertisementId', [ReviewController::class, 'getReviewByAdvertisementId']);
 
 Route::get('/getCategories', [CategoryController::class, 'getCategories']); //
 
@@ -47,7 +51,7 @@ Route::get('/getCityByID', [CityController::class, 'show']); //
 Route::get('/getFishNames', [FishController::class, 'getFishNames']); //
 Route::get('/getFishById', [FishController::class, 'getFishById']); //
 
-
+Route::post('/getSellerCardDetails', [UserController::class, 'getSellerCardDetails']); //
 
 //Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -62,7 +66,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/removeProfile', [UserController::class, 'destroy']);
     Route::post('/updateProfileNameEmail', [UserController::class, 'update']);
 
-    Route::post('/advertisement/getAdvertisementById', [AdvertisementController::class, 'getAdvertisementById']);
+
 
     Route::post('/report/addReport', [ReportedContentController::class, 'addReport']);
 
@@ -71,10 +75,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/user-info/get', [InformationController::class, 'getUserInfo']);
         Route::post('/user-info/update', [InformationController::class, 'updateUserInfo']);
 
-        Route::post('/advertisement/addAdvertisement', [AdvertisementController::class, 'addAdvertisement']);
-        Route::post('/advertisement/deleteAdvertisement', [AdvertisementController::class, 'deleteAdvertisement']);
-        Route::post('/advertisement/updateAdvertisement', [AdvertisementController::class, 'updateAdvertisement']);
-        Route::post('/advertisement/getUserAdvertisements', [AdvertisementController::class, 'getUserAdvertisements']);
+        Route::get('/advertisement/getUsersAdvertisementCount', [AdvertisementController::class, 'getUsersAdvertisementCount']);
 
         Route::post('/review/addReview', [ReviewController::class, 'addReview']);
         Route::post('/review/updateReview', [ReviewController::class, 'updateReview']);
@@ -86,12 +87,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/shop-info/exists', [InformationController::class, 'hasShopInfo']); // Check if shop information exists (true/false)
         Route::get('/shop-info/get', [InformationController::class, 'getShopInfo']);
         Route::post('/shop-info/update', [InformationController::class, 'updateShopInfo']);
+        // Shop-specific routes
+    });
 
+    Route::middleware('role:user|role:shop')->group(function () {
         Route::post('/advertisement/addAdvertisement', [AdvertisementController::class, 'addAdvertisement']);
         Route::post('/advertisement/deleteAdvertisement', [AdvertisementController::class, 'deleteAdvertisement']);
         Route::post('/advertisement/updateAdvertisement', [AdvertisementController::class, 'updateAdvertisement']);
         Route::post('/advertisement/getUserAdvertisements', [AdvertisementController::class, 'getUserAdvertisements']);
-        // Shop-specific routes
+        // User and Shop routes
     });
 
     Route::middleware('role:admin')->group(function () {
