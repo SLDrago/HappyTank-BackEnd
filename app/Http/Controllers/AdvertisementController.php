@@ -337,9 +337,9 @@ class AdvertisementController extends Controller
             ];
 
             // Extract user additional information based on role (User or Shop)
-            if ($user->role === 'User') {
+            if ($user->role === 'user') {
                 $additionalInformation = UserInfo::where('user_id', $user->id)->first();
-            } elseif ($user->role === 'Shop') {
+            } elseif ($user->role === 'shop') {
                 $additionalInformation = ShopInfo::where('user_id', $user->id)->first();
             }
 
@@ -454,7 +454,9 @@ class AdvertisementController extends Controller
             if ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('title', 'like', "%$search%")
-                        ->orWhere('small_description', 'like', "%$search%");
+                        ->orWhere('small_description', 'like', "%$search%")
+                        ->orWhere('tags', 'like', "%$search%")
+                        ->orWhere('description', 'like', "%$search%");
                 });
             }
 
@@ -526,24 +528,30 @@ class AdvertisementController extends Controller
         try {
             // Validate request
             $request->validate([
-                'search' => 'required|string',
+                'tags' => 'required|string',
                 'city' => 'nullable|string',
                 'page' => 'nullable|integer|min:1',
-                'per_page' => 'nullable|integer|min:1|max:10', // Limiting to 10 advertisements per page for demonstration
+                'per_page' => 'nullable|integer|min:1|max:12', // Limiting to 12 advertisements per page
             ]);
 
             // Extract parameters from the request
-            $search = $request->search;
+            $tags = $request->tags;
             $city = $request->city;
             $page = $request->page ?? 1;
-            $perPage = $request->per_page ?? 5; // Default to 5 advertisements per page
+            $perPage = $request->per_page ?? 6; // Default to 6 advertisements per page
 
-            // Start building the query with search term
+            // Split tags into an array
+            $tagsArray = array_map('trim', explode(',', $tags));
+
+            // Start building the query with tags
             $query = Advertisement::query();
-            $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%$search%")
-                    ->orWhere('small_description', 'like', "%$search%")
-                    ->orWhere('description', 'like', "%$search%");
+            $query->where(function ($q) use ($tagsArray) {
+                foreach ($tagsArray as $tag) {
+                    $q->orWhere('tags', 'like', "%$tag%")
+                        ->orWhere('title', 'like', "%$tag%")
+                        ->orWhere('small_description', 'like', "%$tag%")
+                        ->orWhere('description', 'like', "%$tag%");
+                }
             });
 
             // Apply city filter if provided
@@ -566,14 +574,17 @@ class AdvertisementController extends Controller
                 ->orderBy('created_at', 'desc') // Order by creation date, you can change this as per your preference
                 ->paginate($perPage, ['*'], 'page', $page);
 
-            // Check if we have results for search + city
+            // Check if we have results for tags + city
             if ($advertisements->isEmpty() && $city) {
-                // No results found for city, search only by search term
+                // No results found for city, search only by tags
                 $query = Advertisement::query();
-                $query->where(function ($q) use ($search) {
-                    $q->where('title', 'like', "%$search%")
-                        ->orWhere('small_description', 'like', "%$search%")
-                        ->orWhere('description', 'like', "%$search%");
+                $query->where(function ($q) use ($tagsArray) {
+                    foreach ($tagsArray as $tag) {
+                        $q->orWhere('tags', 'like', "%$tag%")
+                            ->orWhere('title', 'like', "%$tag%")
+                            ->orWhere('small_description', 'like', "%$tag%")
+                            ->orWhere('description', 'like', "%$tag%");
+                    }
                 });
 
                 // Eager load reviews relationship
@@ -606,6 +617,7 @@ class AdvertisementController extends Controller
         }
     }
 
+
     public function setAdvertisementStatus(Request $request)
     {
         try {
@@ -635,6 +647,88 @@ class AdvertisementController extends Controller
         } catch (Exception $e) {
             // Prepare error response
             return response()->json(['message' => 'Failed to update advertisement status', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function searchRelatedFishAdvertisements(Request $request)
+    {
+        try {
+            // Validate request
+            $request->validate([
+                'fish_name' => 'required|string',
+                'page' => 'nullable|integer|min:1',
+                'per_page' => 'nullable|integer|min:6',
+            ]);
+
+            // Extract parameters from the request
+            $fishNames = $request->fish_name;
+            $page = $request->page ?? 1;
+            $perPage = $request->per_page ?? 6;
+
+            // Split fish names into an array
+            $fishNamesArray = array_map('trim', explode(' ', $fishNames));
+
+            // Start building the query
+            $query = Advertisement::query();
+
+            // Apply search by fish names
+            $query->where(function ($q) use ($fishNamesArray) {
+                foreach ($fishNamesArray as $fishName) {
+                    $q->orWhere('title', 'like', "%$fishName%")
+                        ->orWhere('small_description', 'like', "%$fishName%")
+                        ->orWhere('tags', 'like', "%$fishName%")
+                        ->orWhere('description', 'like', "%$fishName%");
+                }
+            });
+
+            // Eager load reviews relationship
+            $query->withCount('reviews');
+            $query->withAvg('reviews', 'rating');
+
+            // Paginate the results
+            $advertisements = $query->with('images')
+                ->orderBy('created_at', 'desc')
+                ->paginate($perPage, ['*'], 'page', $page);
+
+            // Prepare response with advertisement data and additional information
+            $response = [];
+            foreach ($advertisements as $advertisement) {
+                $image = $advertisement->images->isNotEmpty() ? $advertisement->images->first()->image_url : null;
+                $response[] = [
+                    'id' => $advertisement->id,
+                    'title' => $advertisement->title,
+                    'small_description' => $advertisement->small_description,
+                    'price' => $advertisement->price,
+                    'image_url' => $image,
+                    'avg_review' => $advertisement->reviews_avg_rating ?? 0, // If no reviews, default to 0
+                    'review_count' => $advertisement->reviews_count ?? 0, // If no reviews, default to 0
+                ];
+            }
+
+            return response()->json([
+                'advertisements' => $response,
+                'meta' => [
+                    'current_page' => $advertisements->currentPage(),
+                    'last_page' => $advertisements->lastPage(),
+                    'per_page' => $advertisements->perPage(),
+                    'total' => $advertisements->total(),
+                ]
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'Failed to search advertisements by fish names', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getUsersAdvertisementCount(Request $request)
+    {
+        try {
+            $user_id = Auth::id();
+
+            $advertisementCount = Advertisement::where('user_id', $user_id)->count();
+
+            return response()->json(['advertisement_count' => $advertisementCount], 200);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'Failed to retrieve user advertisements count', 'error' => $e->getMessage()], 500);
         }
     }
 }

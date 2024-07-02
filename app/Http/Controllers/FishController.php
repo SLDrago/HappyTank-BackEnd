@@ -129,29 +129,68 @@ class FishController extends Controller
         return response()->json(['message' => 'Fish deleted successfully']);
     }
 
+    public function getFishByIdWithImages(Request $request)
+    {
+        $data = $request->validate([
+            'id' => 'required|integer'
+        ]);
+        $id = $data['id'];
+
+        $fish = $this->fish->find($id);
+
+        if (!$fish) {
+            return response()->json(['message' => 'Fish not found'], 404);
+        }
+
+        // Extract the first image URL or set to null if no image exists
+        $imageUrl = optional($fish->fishImages->first())->image;
+
+        return response()->json(
+            $fish
+                ->makeHidden('fishImages')
+                ->toArray() + ['image' => $imageUrl]
+        );
+    }
+
     public function getSelectedFishCompatibility(Request $request)
     {
         $fishes = $this->fish->all();
-
-        $fish1 = $fishes->firstWhere('id', $request->input('fish1'));
-        $fish2 = $fishes->firstWhere('id', $request->input('fish2'));
-        $fish3 = $fishes->firstWhere('id', $request->input('fish3'));
-
         $data = [];
-        $data['peacepercentage'] = $this->aggressivenessService->getAggressivenessPercentageThree($fish1->behavior, $fish2->behavior, $fish3->behavior);
-        $data['tempOverlap'] = $this->rangeAnalyseService->calculateOverlapThreeRanges($fish1->temperature, $fish2->temperature, $fish3->temperature);
-        $data['lengthMatchPrecentage'] = $this->sizeAnalyseService->getMatchPercentageThreeSizes($fish1->max_standard_length, $fish2->max_standard_length, $fish3->max_standard_length);
-        $data['phOverlap'] = $this->rangeAnalyseService->calculateOverlapThreeRanges($fish1->ph, $fish2->ph, $fish3->ph);
+        $result = 0;
 
-        $result = ($data['peacepercentage'] + $data['tempOverlap']['overlap_percentage'] + $data['lengthMatchPrecentage'] + $data['phOverlap']['overlap_percentage']) / 4;
+        if ($request->input('fish1') != null && $request->input('fish2') != null) {
+            $fish1 = $fishes->firstWhere('id', $request->input('fish1'));
+            $fish2 = $fishes->firstWhere('id', $request->input('fish2'));
 
-        return response()->json([
-            'result' => $result,
-            'tempOverlapRange' => $data['tempOverlap']['overlap_range'],
-            'phOverlapRange' => $data['phOverlap']['overlap_range'],
-            'fish1Name' => $fish1->common_name,
-            'fish2Name' => $fish2->common_name,
-            'fish3Name' => $fish3->common_name
-        ], 200);
+            if ($request->input('fish3') != null) {
+                $fish3 = $fishes->firstWhere('id', $request->input('fish3'));
+                $data['peacepercentage'] = $this->aggressivenessService->getAggressivenessPercentageThree($fish1->behavior, $fish2->behavior, $fish3->behavior);
+                $data['tempOverlap'] = $this->rangeAnalyseService->calculateOverlapThreeRanges($fish1->temperature, $fish2->temperature, $fish3->temperature);
+                $data['lengthMatchPrecentage'] = $this->sizeAnalyseService->getMatchPercentageThreeSizes($fish1->max_standard_length, $fish2->max_standard_length, $fish3->max_standard_length);
+                $data['phOverlap'] = $this->rangeAnalyseService->calculateOverlapThreeRanges($fish1->ph, $fish2->ph, $fish3->ph);
+                $result = ($data['peacepercentage'] + $data['tempOverlap']['overlap_percentage'] + $data['lengthMatchPrecentage'] + $data['phOverlap']['overlap_percentage']) / 4;
+            } else {
+                $data['peacepercentage'] = $this->aggressivenessService->getAggressivenessPercentage($fish1->behavior, $fish2->behavior);
+                $data['tempOverlap'] = $this->rangeAnalyseService->calculateOverlap($fish1->temperature, $fish2->temperature);
+                $data['lengthMatchPrecentage'] = $this->sizeAnalyseService->getMatchPercentageTwoSizes($fish1->max_standard_length, $fish2->max_standard_length);
+                $data['phOverlap'] = $this->rangeAnalyseService->calculateOverlap($fish1->ph, $fish2->ph);
+                $result = ($data['peacepercentage'] + $data['tempOverlap']['overlap_percentage'] + $data['lengthMatchPrecentage'] + $data['phOverlap']['overlap_percentage']) / 4;
+            }
+
+            return response()->json([
+                'result' => $result,
+                'tempOverlapRange' => $data['tempOverlap']['overlap_range'],
+                'phOverlapRange' => $data['phOverlap']['overlap_range'],
+                'peacePercentage' => $data['peacepercentage'],
+                'tempMatchPercentage' => $data['tempOverlap']['overlap_percentage'],
+                'lengthMatchPercentage' => $data['lengthMatchPrecentage'],
+                'phMatchPercentage' => $data['phOverlap']['overlap_percentage'],
+                'fish1Name' => $fish1->common_name,
+                'fish2Name' => $fish2->common_name,
+                'fish3Name' => isset($fish3) ? $fish3->common_name : null
+            ], 200);
+        } else {
+            return response()->json(['error' => 'Please provide at least two fish IDs.'], 400);
+        }
     }
 }

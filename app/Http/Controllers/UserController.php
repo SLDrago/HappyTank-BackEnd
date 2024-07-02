@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\City;
+use App\Models\ShopInfo;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\UserInfo;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
@@ -79,5 +82,29 @@ class UserController extends Controller
         $user->save();
 
         return response()->json(['message' => 'Password updated successfully'], 200);
+    }
+
+    public function getSellerCardDetails(Request $request)
+    {
+        $user = User::findOrFail($request->id);
+        if ($user->role == 'shop') {
+            $additionalData = ShopInfo::where('user_id', $user->id)->first();
+        } else {
+            $additionalData = UserInfo::where('user_id', $user->id)->first();
+        }
+
+        $city = City::where('id', $additionalData->city_id)->first();
+        $address = $city->name;
+
+        $response[] = [
+            'id' => $user->id ?? null,
+            'name' => $user->name ?? null,
+            'imageUrl' => $user->profile_photo_path ?? $user->profile_photo_url,
+            'address' => $additionalData->address ?? null,
+            'description' => $additionalData->description ?? null,
+            'gps' => $additionalData->gps_coordinates ?? null,
+            'city' => $address
+        ];
+        return response()->json($response, 200);
     }
 }

@@ -27,6 +27,7 @@ class ReviewController extends Controller
     {
         try {
             $validatedData = $request->validate([
+                'title' => 'required|string|max:255',
                 'review_text' => 'required|string|max:255',
                 'rating' => 'required|integer|between:1,5',
                 'advertisement_id' => 'required|exists:advertisements,id'
@@ -34,21 +35,33 @@ class ReviewController extends Controller
 
             $user = Auth::user();
             $user_id = $user->id;
+            $advertisement_id = $validatedData['advertisement_id'];
+
+            // Check if the user has already reviewed this advertisement
+            $existingReview = Review::where('user_id', $user_id)
+                ->where('advertisement_id', $advertisement_id)
+                ->first();
+
+            if ($existingReview) {
+                return response()->json(['error' => 'You have already added a review for this advertisement'], Response::HTTP_CONFLICT);
+            }
 
             $review = Review::create([
+                'title' => $validatedData['title'],
                 'review_text' => $validatedData['review_text'],
                 'rating' => $validatedData['rating'],
-                'advertisement_id' => $validatedData['advertisement_id'],
+                'advertisement_id' => $advertisement_id,
                 'user_id' => $user_id
             ]);
 
-            return response()->json(['message' => 'Review created successfully', 'review' => $review], Response::HTTP_CREATED);
+            return response()->json(['message' => 'Review added successfully', 'review' => $review], Response::HTTP_CREATED);
         } catch (ValidationException $e) {
             return response()->json(['errors' => $e->errors()], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to create review'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+
 
     public function showReviewByID(Request $request)
     {
@@ -70,6 +83,7 @@ class ReviewController extends Controller
         try {
             $validatedData = $request->validate([
                 'id' => 'required',
+                'title' => 'sometimes|required|string|max:255',
                 'review_text' => 'sometimes|required|string|max:255',
                 'rating' => 'sometimes|required|integer|between:1,5'
             ]);
@@ -193,6 +207,62 @@ class ReviewController extends Controller
             return response()->json(['error' => 'Advertisement not found'], Response::HTTP_NOT_FOUND);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to fetch review summary'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public function getReviewByAdvertisementId(Request $request)
+    {
+        try {
+            $request->validate([
+                'advertisement_id' => 'required|exists:advertisements,id',
+                'page' => 'nullable|integer|min:1',
+                'per_page' => 'nullable|integer|min:1|max:10',
+            ]);
+
+            $advertisementId = $request->input('advertisement_id');
+            $page = $request->input('page', 1);
+            $perPage = $request->input('per_page', 3);
+
+            // Fetch reviews with pagination and sorting by latest
+            $reviewsQuery = Review::where('advertisement_id', $advertisementId)
+                ->with('user')
+                ->orderBy('created_at', 'desc');
+
+            // Calculate review count and average rating
+            $reviewCount = $reviewsQuery->count();
+            $avgRating = $reviewsQuery->avg('rating');
+
+            // Fetch paginated reviews
+            $paginatedReviews = $reviewsQuery->paginate($perPage, ['*'], 'page', $page);
+
+            // Prepare response data
+            $reviews = $paginatedReviews->items();
+            $formattedReviews = [];
+            foreach ($reviews as $review) {
+                $formattedReviews[] = [
+                    'rating' => $review->rating,
+                    'title' => $review->title,
+                    'review_text' => $review->review_text,
+                    'user_name' => $review->user->name,
+                    'date' => \Carbon\Carbon::parse($review->created_at)->format('d F Y'),
+                ];
+            }
+
+            return response()->json([
+                'review_count' => $reviewCount,
+                'avg_rating' => $avgRating,
+                'reviews' => $formattedReviews,
+                'pagination' => [
+                    'current_page' => $paginatedReviews->currentPage(),
+                    'last_page' => $paginatedReviews->lastPage(),
+                    'per_page' => $paginatedReviews->perPage(),
+                    'total' => $paginatedReviews->total(),
+                ],
+            ]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Advertisement not found'], Response::HTTP_NOT_FOUND);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to fetch reviews'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 }

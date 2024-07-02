@@ -62,9 +62,7 @@ class InformationController extends Controller
         $validatedData = $request->validate([
             'owner_name' => 'required|string',
             'description' => 'nullable|string',
-            'physical_address' => 'required|string',
             'phone_number' => 'required|string',
-            'category' => 'required|string',
             'address' => 'required|string',
             'city_id' => 'required|integer|exists:cities,id',
             'gps_coordinates' => 'required|array',
