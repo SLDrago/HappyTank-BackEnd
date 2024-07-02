@@ -129,6 +129,29 @@ class FishController extends Controller
         return response()->json(['message' => 'Fish deleted successfully']);
     }
 
+    public function getFishByIdWithImages(Request $request)
+    {
+        $data = $request->validate([
+            'id' => 'required|integer'
+        ]);
+        $id = $data['id'];
+
+        $fish = $this->fish->find($id);
+
+        if (!$fish) {
+            return response()->json(['message' => 'Fish not found'], 404);
+        }
+
+        // Extract the first image URL or set to null if no image exists
+        $imageUrl = optional($fish->fishImages->first())->image;
+
+        return response()->json(
+            $fish
+                ->makeHidden('fishImages')
+                ->toArray() + ['image' => $imageUrl]
+        );
+    }
+
     public function getSelectedFishCompatibility(Request $request)
     {
         $fishes = $this->fish->all();
