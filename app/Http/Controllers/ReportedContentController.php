@@ -21,6 +21,16 @@ class ReportedContentController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $existingReport = ReportedContent::where([
+            'content_type' => $request->content_type,
+            'content_id' => $request->content_id,
+            'reporter_id' => Auth::id(),
+        ])->first();
+
+        if ($existingReport) {
+            return response()->json(['message' => 'You have already reported this content'], 409);
+        }
+
         $report = ReportedContent::create([
             'content_type' => $request->content_type,
             'content_id' => $request->content_id,

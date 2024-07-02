@@ -655,13 +655,13 @@ class AdvertisementController extends Controller
         try {
             // Validate request
             $request->validate([
-                'fish_names' => 'required|string',
+                'fish_name' => 'required|string',
                 'page' => 'nullable|integer|min:1',
                 'per_page' => 'nullable|integer|min:6',
             ]);
 
             // Extract parameters from the request
-            $fishNames = $request->fish_names;
+            $fishNames = $request->fish_name;
             $page = $request->page ?? 1;
             $perPage = $request->per_page ?? 6;
 

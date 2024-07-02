@@ -11,6 +11,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ReportedContentController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CityController;
+use App\Http\Controllers\FishImageController;
 use App\Http\Controllers\UserController;
 
 Route::get('/user', function (Request $request) {
@@ -53,6 +54,9 @@ Route::get('/getFishById', [FishController::class, 'getFishById']); //
 
 Route::post('/getSellerCardDetails', [UserController::class, 'getSellerCardDetails']); //
 
+Route::post('/fish/getFishByIdWithImages', [FishController::class, 'getFishByIdWithImages']);
+
+
 //Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -66,9 +70,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/removeProfile', [UserController::class, 'destroy']);
     Route::post('/updateProfileNameEmail', [UserController::class, 'update']);
 
-
-
     Route::post('/report/addReport', [ReportedContentController::class, 'addReport']);
+
+
 
     Route::middleware('role:user')->group(function () {
         Route::get('/user-info/exists', [InformationController::class, 'hasUserInfo']); // Check if user information exists (true/false)
@@ -90,7 +94,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Shop-specific routes
     });
 
-    Route::middleware('role:user|role:shop')->group(function () {
+    Route::middleware('role:user,shop')->group(function () {
         Route::post('/advertisement/addAdvertisement', [AdvertisementController::class, 'addAdvertisement']);
         Route::post('/advertisement/deleteAdvertisement', [AdvertisementController::class, 'deleteAdvertisement']);
         Route::post('/advertisement/updateAdvertisement', [AdvertisementController::class, 'updateAdvertisement']);
@@ -119,6 +123,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/fish/addFish', [FishController::class, 'addFish']);
         Route::post('/fish/updateFish', [FishController::class, 'updateFish']);
         Route::post('/fish/deleteFish', [FishController::class, 'deleteFish']);
-        // Admin-specific routes
+
+        Route::post('/fish/addFishImage', [FishImageController::class, 'store']);
     });
+    // Admin-specific routes
 });

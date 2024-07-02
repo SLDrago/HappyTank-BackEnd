@@ -93,16 +93,17 @@ class UserController extends Controller
             $additionalData = UserInfo::where('user_id', $user->id)->first();
         }
 
-        if ($additionalData->address == null) {
-            $city = City::where('id', $additionalData->city_id)->first();
-            $address = $city->name;
-        }
+        $city = City::where('id', $additionalData->city_id)->first();
+        $address = $city->name;
 
         $response[] = [
             'id' => $user->id ?? null,
             'name' => $user->name ?? null,
             'imageUrl' => $user->profile_photo_path ?? $user->profile_photo_url,
-            'address' => $additionalData->address ?? $address,
+            'address' => $additionalData->address ?? null,
+            'description' => $additionalData->description ?? null,
+            'gps' => $additionalData->gps_coordinates ?? null,
+            'city' => $address
         ];
         return response()->json($response, 200);
     }
