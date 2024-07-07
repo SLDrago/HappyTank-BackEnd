@@ -38,6 +38,7 @@ Route::post('/advertisement/filterAdvertisements', [AdvertisementController::cla
 Route::post('/advertisement/searchRelatedAdvertisements', [AdvertisementController::class, 'searchRelatedAdvertisements']);
 Route::post('/advertisement/searchRelatedFishAdvertisements', [AdvertisementController::class, 'searchRelatedFishAdvertisements']);
 Route::post('/advertisement/getAdvertisementById', [AdvertisementController::class, 'getAdvertisementById']);
+Route::post('/advertisement/getAdvertisementImagesByAdId', [AdvertisementController::class, 'getAdvertisementImagesByAdId']);
 
 Route::post('/review/getRatingCounts', [ReviewController::class, 'getRatingCounts']);
 Route::post('/review/showReviewByID', [ReviewController::class, 'showReviewByID']);
@@ -99,6 +100,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/advertisement/deleteAdvertisement', [AdvertisementController::class, 'deleteAdvertisement']);
         Route::post('/advertisement/updateAdvertisement', [AdvertisementController::class, 'updateAdvertisement']);
         Route::post('/advertisement/getUserAdvertisements', [AdvertisementController::class, 'getUserAdvertisements']);
+        Route::post('/advertisement/deleteAdvertisementImage', [AdvertisementController::class, 'deleteAdvertisementImage']);
+        Route::post('/advertisement/AddAdvertisementImage', [AdvertisementController::class, 'AddAdvertisementImage']);
         // User and Shop routes
     });
 

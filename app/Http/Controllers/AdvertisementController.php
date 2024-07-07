@@ -114,23 +114,35 @@ class AdvertisementController extends Controller
     public function addAdvertisement(Request $request)
     {
         try {
-            // Validate request fields
             $fields = $request->validate([
                 'title' => 'required|string',
                 'small_description' => 'required|string',
                 'description' => 'required|string',
-                'image_url.*' => 'required|file|image|max:10240', // Allow multiple images
+                'image_url.*' => 'required|file|image|max:10240',
                 'price' => 'required|numeric',
                 'price_based_on' => 'required|string',
                 'category_id' => 'required|exists:categories,id',
                 'tags' => 'required|string'
             ]);
 
-            // Get authenticated user ID
             $user = Auth::user();
             $user_id = $user->id;
 
-            // Create advertisement
+            if ($user->role === 'shop') {
+                $shopInfo = ShopInfo::where('user_id', $user_id)->first();
+                if (!$shopInfo) {
+                    return response()->json(['message' => 'Shop information not found'], 404);
+                }
+            } else if ($user->role === 'user') {
+                $userInfo = UserInfo::where('user_id', $user_id)->first();
+                $advertisementCount = Advertisement::where('user_id', $user_id)->count();
+                if (!$userInfo) {
+                    return response()->json(['message' => 'User information not found'], 404);
+                } else if ($advertisementCount >= 2) {
+                    return response()->json(['message' => 'You have reached the maximum number of advertisements'], 403);
+                }
+            }
+
             $advertisement = Advertisement::create([
                 'title' => $fields['title'],
                 'small_description' => $fields['small_description'],
@@ -142,19 +154,13 @@ class AdvertisementController extends Controller
                 'user_id' => $user_id
             ]);
 
-            // Handle image uploads locally
             if ($request->hasFile('image_url')) {
                 foreach ($request->file('image_url') as $file) {
                     try {
-                        // Store file locally and log file path
                         $imagePath = $file->store('advertisement_images', 'public');
                         if ($imagePath) {
-
-                            // Generate public URL for the file and log URL
                             $imageUrl = Storage::url($imagePath);
-                            Log::info("File URL: " . $imageUrl);
 
-                            // Create advertisement image record and log database action
                             AdvertisementImage::create([
                                 'advertisement_id' => $advertisement->id,
                                 'image_url' => $imageUrl
@@ -177,7 +183,6 @@ class AdvertisementController extends Controller
                 }
             }
 
-            // Prepare success response
             $response = [
                 'advertisement' => $advertisement,
                 'message' => 'Advertisement added successfully.'
@@ -194,7 +199,35 @@ class AdvertisementController extends Controller
         }
     }
 
+    public function updateAdvertisement(Request $request)
+    {
+        try {
+            // Validate request fields
+            $fields = $request->validate([
+                'id' => 'required',
+                'title' => 'sometimes|required|string',
+                'small_description' => 'sometimes|required|string',
+                'description' => 'sometimes|required|string',
+                'price' => 'sometimes|required|numeric',
+                'price_based_on' => 'sometimes|required|string',
+                'category_id' => 'sometimes|required|exists:categories,id',
+                'tags' => 'sometimes|required|string'
+            ]);
 
+            $id = $fields['id'];
+            $advertisement = Advertisement::findOrFail($id);
+
+            if ($advertisement->user_id !== Auth::id()) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+
+            $advertisement->update($fields);
+
+            return response()->json(['message' => 'Advertisement updated successfully', 'advertisement' => $advertisement], 200);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'Failed to update advertisement', 'error' => $e->getMessage()], 500);
+        }
+    }
 
     public function deleteAdvertisement(Request $request)
     {
@@ -205,22 +238,18 @@ class AdvertisementController extends Controller
 
             $id = $fields['id'];
 
-            // Find the advertisement by ID
             $advertisement = Advertisement::findOrFail($id);
 
-            // Check if the authenticated user is the owner
             if ($advertisement->user_id !== Auth::id()) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
 
-            // Delete associated images from GCS
             $images = AdvertisementImage::where('advertisement_id', $id)->get();
             foreach ($images as $image) {
-                Storage::disk('gcs')->delete($image->image_url);
+                Storage::disk('public')->delete($image->image_url);
                 $image->delete();
             }
 
-            // Delete the advertisement
             $advertisement->delete();
 
             return response()->json(['message' => 'Advertisement deleted successfully'], 200);
@@ -229,7 +258,8 @@ class AdvertisementController extends Controller
         }
     }
 
-    public function updateAdvertisement(Request $request)
+
+    public function updateAdvertisementWithImages(Request $request)
     {
         try {
             // Validate request fields
@@ -355,6 +385,31 @@ class AdvertisementController extends Controller
         }
     }
 
+    public function getAdvertisementImagesByAdId(Request $request)
+    {
+        try {
+            // Validate request
+            $request->validate([
+                'advertisement_id' => 'required|exists:advertisements,id'
+            ]);
+
+            // Extract advertisement ID from the request
+            $advertisementId = $request->advertisement_id;
+
+            // Find the advertisement by ID with its associated images
+            $advertisement = Advertisement::with('images')->findOrFail($advertisementId);
+
+            // Extract image URLs from the images relationship
+            $imageUrls = $advertisement->images->map(function ($image) {
+                return ['id' => $image->id, 'img_url' => $image->image_url];
+            });
+
+            return response()->json(['image_urls' => $imageUrls], 200);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'Failed to retrieve advertisement images', 'error' => $e->getMessage()], 500);
+        }
+    }
+
     public function getTopRatedAdvertisements(Request $request)
     {
         try {
@@ -427,7 +482,6 @@ class AdvertisementController extends Controller
     public function filterAdvertisements(Request $request)
     {
         try {
-            // Validate request
             $request->validate([
                 'search' => 'nullable|string',
                 'category' => 'nullable|string',
@@ -438,7 +492,6 @@ class AdvertisementController extends Controller
                 'per_page' => 'nullable|integer|min:6',
             ]);
 
-            // Extract parameters from the request
             $search = $request->search;
             $category = $request->category;
             $city = $request->city;
@@ -447,10 +500,8 @@ class AdvertisementController extends Controller
             $page = $request->page ?? 1;
             $perPage = $request->per_page ?? 6;
 
-            // Start building the query
             $query = Advertisement::query();
 
-            // Apply search filter if provided
             if ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('title', 'like', "%$search%")
@@ -460,23 +511,18 @@ class AdvertisementController extends Controller
                 });
             }
 
-            // Apply category filter if provided
             if ($category) {
                 $query->where('category_id', $category);
             }
 
-            // Apply city filter if provided
             if ($city) {
-                // Fetch user IDs based on city from UserInfo and ShopInfo
-                $userIds = UserInfo::where('city', $city)->pluck('user_id')
-                    ->merge(ShopInfo::where('city', $city)->pluck('user_id'))
+                $userIds = UserInfo::where('city_id', $city)->pluck('user_id')
+                    ->merge(ShopInfo::where('city_id', $city)->pluck('user_id'))
                     ->unique();
 
-                // Apply the user IDs filter to the query
                 $query->whereIn('user_id', $userIds);
             }
 
-            // Apply price range filter if provided
             if ($minPrice !== null) {
                 $query->where('price', '>=', $minPrice);
             }
@@ -484,16 +530,13 @@ class AdvertisementController extends Controller
                 $query->where('price', '<=', $maxPrice);
             }
 
-            // Eager load reviews relationship
             $query->withCount('reviews');
             $query->withAvg('reviews', 'rating');
 
-            // Paginate the results
             $advertisements = $query->with('images')
                 ->orderBy('created_at', 'desc')
                 ->paginate($perPage, ['*'], 'page', $page);
 
-            // Prepare response with advertisement data and additional information
             $response = [];
             foreach ($advertisements as $advertisement) {
                 $image = $advertisement->images->isNotEmpty() ? $advertisement->images->first()->image_url : null;
@@ -729,6 +772,71 @@ class AdvertisementController extends Controller
             return response()->json(['advertisement_count' => $advertisementCount], 200);
         } catch (Exception $e) {
             return response()->json(['message' => 'Failed to retrieve user advertisements count', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function deleteAdvertisementImage(Request $request)
+    {
+        try {
+            // Validate request
+            $request->validate([
+                'image_id' => 'required|exists:advertisement_images,id',
+            ]);
+
+            // Extract image ID from the request
+            $imageId = $request->image_id;
+
+            // Find the image by ID
+            $image = AdvertisementImage::findOrFail($imageId);
+
+            // Delete the image from public storage
+            Storage::disk('public')->delete($image->image_url);
+
+            // Delete the image record
+            $image->delete();
+
+            return response()->json(['message' => 'Advertisement image deleted successfully'], 200);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'Failed to delete advertisement image', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function AddAdvertisementImage(Request $request)
+    {
+        try {
+            // Validate request
+            $request->validate([
+                'advertisement_id' => 'required|exists:advertisements,id',
+                'image_url' => 'required|file|image|max:10240', // Assuming a max size of 10MB for the image
+            ]);
+
+            // Extract parameters from the request
+            $advertisementId = $request->advertisement_id;
+            $image = $request->file('image_url');
+
+            // Find the advertisement by ID
+            $advertisement = Advertisement::findOrFail($advertisementId);
+
+            // Check if the authenticated user is the owner
+            if ($advertisement->user_id !== Auth::id()) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+
+            // Store the image locally
+            $imagePath = $image->store('advertisement_images', 'public');
+
+            // Manually construct the public URL
+            $imageUrl = Storage::url($imagePath);
+
+            // Create new advertisement image
+            AdvertisementImage::create([
+                'advertisement_id' => $advertisementId,
+                'image_url' => $imageUrl
+            ]);
+
+            return response()->json(['message' => 'Advertisement image added successfully'], 200);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'Failed to add advertisement image', 'error' => $e->getMessage()], 500);
         }
     }
 }

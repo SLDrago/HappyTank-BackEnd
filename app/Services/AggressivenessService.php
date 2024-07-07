@@ -5,12 +5,6 @@ namespace App\Services;
 class AggressivenessService
 {
     /**
-     * Get the aggressiveness percentage based on two inputs.
-     *
-     * @param string $input1
-     * @param string $input2
-     * @return string
-     * Aggressive-Own
      * Not-Aggressive
      * Aggressive-Small
      * Aggressive
@@ -33,11 +27,6 @@ class AggressivenessService
     }
     /**
      * Get the aggressiveness percentage based on three inputs.
-     *
-     * @param string $input1
-     * @param string $input2
-     * @param string $input3
-     * @return string
      */
     public function getAggressivenessPercentageThree($input1, $input2, $input3)
     {
