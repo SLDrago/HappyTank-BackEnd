@@ -14,6 +14,7 @@ use App\Http\Controllers\CityController;
 use App\Http\Controllers\FishImageController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AiController;
+use App\Http\Controllers\ContactUsController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -59,6 +60,8 @@ Route::post('/getSellerCardDetails', [UserController::class, 'getSellerCardDetai
 Route::post('/fish/getFishByIdWithImages', [FishController::class, 'getFishByIdWithImages']);
 
 Route::post('/ai/identifyFish', [AiController::class, 'getFishNameFromImage']);
+
+Route::post('/contact', [ContactUsController::class, 'store']);
 
 
 //Protected Routes
