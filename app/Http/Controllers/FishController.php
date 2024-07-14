@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Fishdata;
-use App\Services\FishCompatibility;
 use App\Services\RangeAnalyseService;
 use App\Services\SizeAnalyseService;
 use App\Services\AggressivenessService;
@@ -163,15 +162,48 @@ class FishController extends Controller
 
             if ($request->input('fish3') != null) {
                 $fish3 = $fishes->firstWhere('id', $request->input('fish3'));
-                $data['peacepercentage'] = $this->aggressivenessService->getAggressivenessPercentageThree($fish1->behavior, $fish2->behavior, $fish3->behavior);
-                $data['tempOverlap'] = $this->rangeAnalyseService->calculateOverlapThreeRanges($fish1->temperature, $fish2->temperature, $fish3->temperature);
-                $data['lengthMatchPrecentage'] = $this->sizeAnalyseService->getMatchPercentageThreeSizes($fish1->max_standard_length, $fish2->max_standard_length, $fish3->max_standard_length);
-                $data['phOverlap'] = $this->rangeAnalyseService->calculateOverlapThreeRanges($fish1->ph, $fish2->ph, $fish3->ph);
+                $data['peacepercentage'] = $this->aggressivenessService->getAggressivenessPercentageThree(
+                    $fish1->behavior,
+                    $fish2->behavior,
+                    $fish3->behavior,
+                    $fish1->max_standard_length,
+                    $fish2->max_standard_length,
+                    $fish3->max_standard_length
+                );
+                $data['tempOverlap'] = $this->rangeAnalyseService->calculateOverlapThreeRanges(
+                    $fish1->temperature,
+                    $fish2->temperature,
+                    $fish3->temperature
+                );
+                $data['lengthMatchPrecentage'] = $this->sizeAnalyseService->getMatchPercentageThreeSizes(
+                    $fish1->max_standard_length,
+                    $fish2->max_standard_length,
+                    $fish3->max_standard_length
+                );
+                $data['phOverlap'] = $this->rangeAnalyseService->calculateOverlapThreeRanges(
+                    $fish1->ph,
+                    $fish2->ph,
+                    $fish3->ph
+                );
             } else {
-                $data['peacepercentage'] = $this->aggressivenessService->getAggressivenessPercentage($fish1->behavior, $fish2->behavior);
-                $data['tempOverlap'] = $this->rangeAnalyseService->calculateOverlap($fish1->temperature, $fish2->temperature);
-                $data['lengthMatchPrecentage'] = $this->sizeAnalyseService->getMatchPercentageTwoSizes($fish1->max_standard_length, $fish2->max_standard_length);
-                $data['phOverlap'] = $this->rangeAnalyseService->calculateOverlap($fish1->ph, $fish2->ph);
+                $data['peacepercentage'] = $this->aggressivenessService->getAggressivenessPercentage(
+                    $fish1->behavior,
+                    $fish2->behavior,
+                    $fish1->max_standard_length,
+                    $fish2->max_standard_length
+                );
+                $data['tempOverlap'] = $this->rangeAnalyseService->calculateOverlap(
+                    $fish1->temperature,
+                    $fish2->temperature
+                );
+                $data['lengthMatchPrecentage'] = $this->sizeAnalyseService->getMatchPercentageTwoSizes(
+                    $fish1->max_standard_length,
+                    $fish2->max_standard_length
+                );
+                $data['phOverlap'] = $this->rangeAnalyseService->calculateOverlap(
+                    $fish1->ph,
+                    $fish2->ph
+                );
             }
 
             if ($data['phOverlap']['overlap_percentage'] > 0 && $data['tempOverlap']['overlap_percentage'] > 0) {

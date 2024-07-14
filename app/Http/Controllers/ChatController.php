@@ -12,25 +12,22 @@ class ChatController extends Controller
     {
         $request->validate([
             'message' => 'required|string',
-            'history' => 'required|array', // Add this line to validate the conversation history
+            'history' => 'required|array',
         ]);
 
         Log::info('Incoming message: ' . $request->input('message'));
         Log::info('Conversation history: ' . json_encode($request->input('history')));
 
-        // System message to set the context
         $systemMessage = [
             "role" => "system",
             "content" => "You are an assistant specialized in fish-related topics. Only respond to questions that are about fish. When answering, make sure your responses are simple and easy to understand, suitable for a 15-year-old. Use a friendly and approachable tone."
         ];
 
-        // Add the user's new message to the conversation history
         $newMessage = [
             "role" => "user",
             "content" => $request->input('message'),
         ];
 
-        // Merge the system message, history, and the new message
         $messages = array_merge([$systemMessage], $request->input('history'), [$newMessage]);
 
         $response = Http::withOptions(['verify' => 'C:\Users\dilsh\OneDrive\Documents\cert\cacert.pem'])->withHeaders([

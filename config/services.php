@@ -37,4 +37,10 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URL'),
     ],
 
+    'google-vision' => [
+        'key_file' => storage_path('happytank-de04340ea5bf.json'),
+        'ca_bundle' => storage_path('cacert.pem'),
+    ],
+
+
 ];

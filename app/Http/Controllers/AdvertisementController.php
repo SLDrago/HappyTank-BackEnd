@@ -246,7 +246,8 @@ class AdvertisementController extends Controller
 
             $images = AdvertisementImage::where('advertisement_id', $id)->get();
             foreach ($images as $image) {
-                Storage::disk('public')->delete($image->image_url);
+                $relativePath = str_replace('/storage/', '', $image->image_url);
+                Storage::disk('public')->delete($relativePath);
                 $image->delete();
             }
 
@@ -257,7 +258,6 @@ class AdvertisementController extends Controller
             return response()->json(['message' => 'Failed to delete advertisement', 'error' => $e->getMessage()], 500);
         }
     }
-
 
     public function updateAdvertisementWithImages(Request $request)
     {

@@ -13,6 +13,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\FishImageController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\AiController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -21,7 +22,7 @@ Route::get('/user', function (Request $request) {
 //Public Routes
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
-Route::get('/verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->name('verification.verify');
+Route::get('/verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail']);
 Route::get('/auth/google', [AuthController::class, 'redirectToGoogle']);
 Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
 Route::post('/forgot-password', [AuthController::class, 'sendResetLinkEmail']);
@@ -57,6 +58,8 @@ Route::post('/getSellerCardDetails', [UserController::class, 'getSellerCardDetai
 
 Route::post('/fish/getFishByIdWithImages', [FishController::class, 'getFishByIdWithImages']);
 
+Route::post('/ai/identifyFish', [AiController::class, 'getFishNameFromImage']);
+
 
 //Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -65,11 +68,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/send-verification-email', [AuthController::class, 'sendVerificationEmail']);
 
     Route::get('/user', [UserController::class, 'user']);
-    Route::post('/updatePassword', [UserController::class, 'updatePassword']);
-    Route::post('/updateBannerPhoto', [UserController::class, 'updateBannerPhoto']);
-    Route::post('/updateProfilePicture', [UserController::class, 'updateProfilePicture']);
-    Route::post('/removeProfile', [UserController::class, 'destroy']);
-    Route::post('/updateProfileNameEmail', [UserController::class, 'update']);
+    Route::post('/user/updateNameEmail', [UserController::class, 'updateNameEmail']);
+    Route::post('/user/updatePassword', [UserController::class, 'updatePassword']);
+    Route::post('/user/updateProfilePicture', [UserController::class, 'updateProfilePicture']);
+    Route::post('/user/updateBannerPhoto', [UserController::class, 'updateBannerPhoto']);
+    Route::post('/user/destroy', [UserController::class, 'destroy']);
 
     Route::post('/report/addReport', [ReportedContentController::class, 'addReport']);
 
@@ -102,6 +105,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/advertisement/getUserAdvertisements', [AdvertisementController::class, 'getUserAdvertisements']);
         Route::post('/advertisement/deleteAdvertisementImage', [AdvertisementController::class, 'deleteAdvertisementImage']);
         Route::post('/advertisement/AddAdvertisementImage', [AdvertisementController::class, 'AddAdvertisementImage']);
+
+
         // User and Shop routes
     });
 
@@ -128,6 +133,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/fish/deleteFish', [FishController::class, 'deleteFish']);
 
         Route::post('/fish/addFishImage', [FishImageController::class, 'store']);
+
+        // Admin-specific routes
     });
-    // Admin-specific routes
 });
