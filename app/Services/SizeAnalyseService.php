@@ -29,21 +29,16 @@ class SizeAnalyseService
     {
         $rangeStr = trim($sizeRange);
 
-        // Replace different types of dashes with a single delimiter
-        $rangeStr = str_replace(['–', '—', '-'], '–', $rangeStr); // en dash, em dash, hyphen to en dash
+        $rangeStr = str_replace(['–', '—', '-'], '–', $rangeStr);
 
-        // Split the range string by the en dash
         $parts = explode("–", $rangeStr);
 
-        // Trim any whitespace around the parts
         $parts = array_map('trim', $parts);
 
-        // Check if we have exactly 2 parts
         if (count($parts) !== 2) {
             throw new InvalidArgumentException("Invalid range string format.");
         }
 
-        // Convert the parts to float and ensure they are valid numbers
         if (!is_numeric($parts[0]) || !is_numeric($parts[1])) {
             throw new InvalidArgumentException("Range values must be numeric.");
         }

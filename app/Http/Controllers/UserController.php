@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\UserInfo;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
@@ -16,7 +17,7 @@ class UserController extends Controller
         return response()->json($request->user());
     }
 
-    public function update(Request $request)
+    public function updateNameEmail(Request $request)
     {
         $user = User::findOrFail($request->user()->id);
         $validatedData = $request->validate([
@@ -41,48 +42,76 @@ class UserController extends Controller
     {
         $user = User::findOrFail($request->user()->id);
         $validatedData = $request->validate([
-            'profile_photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'profile_photo' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
 
         $profilePhotoPath = $request->file('profile_photo')->store('profile_photos', 'public');
-        $user->profile_photo_path = $profilePhotoPath;
-        $user->save();
 
-        return response()->json(['message' => 'Profile picture updated successfully', 'user' => $user], 200);
+        if ($profilePhotoPath) {
+            $profilePhotoUrl = Storage::url($profilePhotoPath);
+            if ($user->profile_photo_path) {
+                $relativePath = str_replace('/storage/', '', $user->profile_photo_path);
+                Storage::disk('public')->delete($relativePath);
+            }
+
+            $user->profile_photo_path = $profilePhotoUrl;
+            $user->save();
+
+            return response()->json(['message' => 'Profile picture updated successfully', 'user' => $user], 200);
+        }
+
+        return response()->json(['message' => 'Failed to upload new profile picture'], 500);
     }
+
 
     public function updateBannerPhoto(Request $request)
     {
         $user = User::findOrFail($request->user()->id);
         $validatedData = $request->validate([
-            'banner_photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'banner_photo' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
 
         $bannerPhotoPath = $request->file('banner_photo')->store('banner_photos', 'public');
-        $user->banner_photo_path = $bannerPhotoPath;
-        $user->save();
 
-        return response()->json(['message' => 'Banner photo updated successfully', 'user' => $user], 200);
+        if ($bannerPhotoPath) {
+            $bannerPhotoUrl = Storage::url($bannerPhotoPath);
+            if ($user->banner_photo_path) {
+                $relativePath = str_replace('/storage/', '', $user->banner_photo_path);
+                Storage::disk('public')->delete($relativePath);
+            }
+
+            $user->banner_photo_path = $bannerPhotoUrl;
+            $user->save();
+
+            return response()->json(['message' => 'Banner photo updated successfully', 'user' => $user], 200);
+        }
+
+        return response()->json(['message' => 'Failed to upload new banner photo'], 500);
     }
 
     public function updatePassword(Request $request)
     {
-        $user = User::findOrFail($request->user()->id);
+        try {
+            $user = User::findOrFail($request->user()->id);
 
-        $validatedData = $request->validate([
-            'current_password' => 'required',
-            'new_password' => 'required|string|min:8|confirmed',
-        ]);
+            $validatedData = $request->validate([
+                'current_password' => 'required',
+                'new_password' => 'required|string|min:8|confirmed',
+            ]);
 
-        if (!Hash::check($validatedData['current_password'], $user->password)) {
-            return response()->json(['message' => 'Current password is incorrect'], 403);
+            if (!Hash::check($validatedData['current_password'], $user->password)) {
+                return response()->json(['message' => 'Current password is incorrect'], 403);
+            }
+
+            $user->password = Hash::make($validatedData['new_password']);
+            $user->save();
+
+            return response()->json(['message' => 'Password updated successfully'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to update password'], 500);
         }
-
-        $user->password = Hash::make($validatedData['new_password']);
-        $user->save();
-
-        return response()->json(['message' => 'Password updated successfully'], 200);
     }
+
 
     public function getSellerCardDetails(Request $request)
     {
@@ -99,7 +128,9 @@ class UserController extends Controller
         $response[] = [
             'id' => $user->id ?? null,
             'name' => $user->name ?? null,
-            'imageUrl' => $user->profile_photo_path ?? $user->profile_photo_url,
+            'email' => $user->email ?? null,
+            'profile_photo_path' => $user->profile_photo_path ?? null,
+            'profile_photo_url' => $user->profile_photo_url ?? null,
             'address' => $additionalData->address ?? null,
             'description' => $additionalData->description ?? null,
             'gps' => $additionalData->gps_coordinates ?? null,

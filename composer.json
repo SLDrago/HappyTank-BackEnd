@@ -7,6 +7,8 @@
     "require": {
         "php": "^8.2",
         "google/cloud-storage": "^1.42",
+        "google/cloud-vision": "^1.9",
+        "guzzlehttp/guzzle": "^7.8",
         "laravel/framework": "^11.0",
         "laravel/jetstream": "^5.0",
         "laravel/sanctum": "^4.0",
