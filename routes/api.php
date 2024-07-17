@@ -60,6 +60,7 @@ Route::post('/getSellerCardDetails', [UserController::class, 'getSellerCardDetai
 Route::post('/fish/getFishByIdWithImages', [FishController::class, 'getFishByIdWithImages']);
 
 Route::post('/ai/identifyFish', [AiController::class, 'getFishNameFromImage']);
+Route::post('/ai/generateFishTankImage', [AiController::class, 'generateFishTankImage']);
 
 Route::post('/contact', [ContactUsController::class, 'store']);
 

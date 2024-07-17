@@ -7,6 +7,8 @@ use App\Models\FishImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use GuzzleHttp\Client;
 
 class AiController extends Controller
 {
@@ -85,6 +87,53 @@ class AiController extends Controller
         } else {
             Log::error('OpenAI API error: ' . $response->body());
 
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to communicate with the OpenAI API',
+            ], $response->status());
+        }
+    }
+
+    public function generateFishTankImage(Request $request)
+    {
+        $request->validate([
+            'description' => 'required|string',
+        ]);
+
+        $description = $request->input('description');
+        $prompt = "A detailed, realistic image of a fish tank with: $description. The image should be vibrant, clear, and show the tank from a front view. The image is use to get the tank design ideas.";
+
+        $response = Http::withOptions(['verify' => 'C:\Users\dilsh\OneDrive\Documents\cert\cacert.pem'])
+            ->withHeaders([
+                "Content-Type" => "application/json",
+                "Authorization" => "Bearer " . env("OPENAI_API_KEY")
+            ])
+            ->post('https://api.openai.com/v1/images/generations', [
+                "prompt" => $prompt,
+                "n" => 1,
+                "size" => "1024x1024",
+                "response_format" => "url",
+                "model" => "dall-e-3",
+            ]);
+
+        if ($response->successful()) {
+            $responseData = $response->json();
+
+            $imageUrl = $responseData['data'][0]['url'] ?? null;
+
+            if ($imageUrl) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Image generated successfully',
+                    'image_url' => $imageUrl,
+                ], 200);
+            } else {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Failed to generate image',
+                ], 500);
+            }
+        } else {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to communicate with the OpenAI API',
