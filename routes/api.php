@@ -15,6 +15,9 @@ use App\Http\Controllers\FishImageController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AiController;
 use App\Http\Controllers\ContactUsController;
+use App\Http\Controllers\PostController;
+use App\Http\Controllers\LikeController;
+use App\Http\Controllers\CommentController;
 
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
@@ -68,6 +71,7 @@ Route::post('/ai/generateFishTankImage', [AiController::class, 'generateFishTank
 
 Route::post('/contact', [ContactUsController::class, 'store']);
 
+Route::get('/posts', [PostController::class, 'index']);
 
 //Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -83,7 +87,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/destroy', [UserController::class, 'destroy']);
 
     Route::post('/report/addReport', [ReportedContentController::class, 'addReport']);
-
 
 
     Route::middleware('role:user')->group(function () {
@@ -114,7 +117,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/advertisement/deleteAdvertisementImage', [AdvertisementController::class, 'deleteAdvertisementImage']);
         Route::post('/advertisement/AddAdvertisementImage', [AdvertisementController::class, 'AddAdvertisementImage']);
 
+        Route::post('/posts', [PostController::class, 'store']);
+        Route::post('/posts/{post}/like', [LikeController::class, 'likePost']);
+        Route::delete('/posts/{post}/like', [LikeController::class, 'unlikePost']);
 
+        Route::post('/posts/{post}/comments', [CommentController::class, 'store']);
+        Route::post('/comments/{comment}/like', [LikeController::class, 'likeComment']);
+        Route::delete('/comments/{comment}/like', [LikeController::class, 'unlikeComment']);
         // User and Shop routes
     });
 

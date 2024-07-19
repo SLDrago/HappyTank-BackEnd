@@ -9,7 +9,7 @@ class Post extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['content', 'image_url'];
+    protected $fillable = ['user_id', 'content', 'image_url', 'likes_count', 'comments_count'];
 
     public function user()
     {
@@ -18,7 +18,7 @@ class Post extends Model
 
     public function comments()
     {
-        return $this->hasMany(Comment::class);
+        return $this->hasMany(Comment::class)->whereNull('parent_id');
     }
 
     public function likes()

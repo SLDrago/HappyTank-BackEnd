@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\Post;
 
 class PostController extends Controller
@@ -27,9 +28,9 @@ class PostController extends Controller
         return response()->json($post, 201);
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $posts = Post::with(['user', 'comments', 'likes'])
+        $posts = Post::with(['user', 'comments.user', 'comments.replies.user', 'likes'])
             ->selectRaw('*, (likes_count * 2) + (comments_count * 1.5) + (UNIX_TIMESTAMP(created_at) / 100000) as score')
             ->orderByDesc('score')
             ->paginate(10);
