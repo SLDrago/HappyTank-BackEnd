@@ -16,9 +16,13 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\AiController;
 use App\Http\Controllers\ContactUsController;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+// Route::get('/user', function (Request $request) {
+//     return $request->user();
+// })->middleware('auth:sanctum');
+
+Route::get('/', function () {
+    return response()->json(['message' => 'API is working!'], 200);
+});
 
 //Public Routes
 Route::post('/login', [AuthController::class, 'login']);
