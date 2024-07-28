@@ -118,12 +118,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/advertisement/AddAdvertisementImage', [AdvertisementController::class, 'AddAdvertisementImage']);
 
         Route::post('/posts', [PostController::class, 'store']);
-        Route::post('/posts/{post}/like', [LikeController::class, 'likePost']);
-        Route::delete('/posts/{post}/like', [LikeController::class, 'unlikePost']);
+        Route::post('/posts/like', [LikeController::class, 'likePost']);
+        Route::post('/posts/unlike', [LikeController::class, 'unlikePost']);
 
-        Route::post('/posts/{post}/comments', [CommentController::class, 'store']);
+        Route::post('/posts/addComments', [CommentController::class, 'store']);
         Route::post('/comments/{comment}/like', [LikeController::class, 'likeComment']);
         Route::delete('/comments/{comment}/like', [LikeController::class, 'unlikeComment']);
+
+        Route::post('/posts/update', [PostController::class, 'update']);
+        Route::delete('/posts/{post}', [PostController::class, 'destroy']);
+        Route::post('/posts/report', [PostController::class, 'report']);
+        Route::get('/getPost/{post}', [PostController::class, 'getPost']);
         // User and Shop routes
     });
 

@@ -8,15 +8,35 @@ use App\Models\Comment;
 
 class LikeController extends Controller
 {
-    public function likePost(Post $post)
+    public function likePost(Request $request)
     {
+        $request->validate([
+            'post_id' => 'required|exists:posts,id'
+        ]);
+
+        $post = Post::find($request->post_id);
+
+        if ($post->likes()->where('user_id', auth()->id())->exists()) {
+            return response()->json(['message' => 'Post already liked'], 409);
+        }
+
         $post->likes()->create(['user_id' => auth()->id()]);
         $post->increment('likes_count');
         return response()->json(['message' => 'Post liked'], 201);
     }
 
-    public function unlikePost(Post $post)
+    public function unlikePost(Request $request)
     {
+        $request->validate([
+            'post_id' => 'required|exists:posts,id'
+        ]);
+
+        $post = Post::find($request->post_id);
+
+        if (!$post->likes()->where('user_id', auth()->id())->exists()) {
+            return response()->json(['message' => 'Post not liked'], 409);
+        }
+
         $post->likes()->where('user_id', auth()->id())->delete();
         $post->decrement('likes_count');
         return response()->json(['message' => 'Post unliked'], 204);
