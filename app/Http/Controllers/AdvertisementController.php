@@ -416,8 +416,8 @@ class AdvertisementController extends Controller
             // Query to get advertisements with the highest ratings
             $topRatedAdvertisements = Advertisement::with('images') // Eager load images relationship
                 ->leftJoin('reviews', 'advertisements.id', '=', 'reviews.advertisement_id')
-                ->select('advertisements.*', DB::raw('AVG(reviews.rating) as avg_rating'))
-                ->groupBy('advertisements.id')
+                ->select('advertisements.id', 'advertisements.title', 'advertisements.small_description', 'advertisements.price', 'advertisements.created_at', 'advertisements.updated_at', DB::raw('AVG(reviews.rating) as avg_rating'))
+                ->groupBy('advertisements.id', 'advertisements.title', 'advertisements.small_description', 'advertisements.price', 'advertisements.created_at', 'advertisements.updated_at')
                 ->orderByDesc('avg_rating')
                 ->limit(6) // Limit the number of top-rated advertisements
                 ->get();
@@ -804,31 +804,24 @@ class AdvertisementController extends Controller
     public function AddAdvertisementImage(Request $request)
     {
         try {
-            // Validate request
             $request->validate([
                 'advertisement_id' => 'required|exists:advertisements,id',
                 'image_url' => 'required|file|image|max:10240', // Assuming a max size of 10MB for the image
             ]);
 
-            // Extract parameters from the request
             $advertisementId = $request->advertisement_id;
             $image = $request->file('image_url');
 
-            // Find the advertisement by ID
             $advertisement = Advertisement::findOrFail($advertisementId);
 
-            // Check if the authenticated user is the owner
             if ($advertisement->user_id !== Auth::id()) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
 
-            // Store the image locally
             $imagePath = $image->store('advertisement_images', 'public');
 
-            // Manually construct the public URL
             $imageUrl = Storage::url($imagePath);
 
-            // Create new advertisement image
             AdvertisementImage::create([
                 'advertisement_id' => $advertisementId,
                 'image_url' => $imageUrl
