@@ -148,4 +148,62 @@ class PostController extends Controller
         $post = Post::findOrFail($id);
         return response()->json($post);
     }
+
+    public function getUserPosts()
+    {
+        $id = auth()->id();
+        $posts = Post::with(['user', 'comments.user', 'comments.replies.user', 'likes'])
+            ->where('user_id', $id)
+            ->orderByDesc('created_at')
+            ->paginate(10);
+
+        return response()->json($posts);
+    }
+
+    public function search(Request $request)
+    {
+        $request->validate([
+            'query' => 'required|string',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date',
+            'user_id' => 'nullable|integer'
+        ]);
+
+        $query = $request->input('query');
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+        $userId = $request->input('user_id');
+
+        // Start building the query
+        $posts = Post::with(['user', 'comments.user', 'comments.replies.user', 'likes'])
+            ->where('status', true)
+            ->whereRaw("MATCH(content) AGAINST(? IN NATURAL LANGUAGE MODE)", [$query]);
+
+        // Apply additional filters if provided
+        if ($dateFrom) {
+            $posts->where('created_at', '>=', $dateFrom);
+        }
+
+        if ($dateTo) {
+            $posts->where('created_at', '<=', $dateTo);
+        }
+
+        if ($userId) {
+            $posts->where('user_id', $userId);
+        }
+
+        // Apply relevance score calculation
+        $posts->selectRaw('*,
+        (MATCH(content) AGAINST(? IN NATURAL LANGUAGE MODE) * 3) +
+        (likes_count * 2) +
+        (comments_count * 1.5) +
+        (UNIX_TIMESTAMP(created_at) / 100000) as score', [$query])
+            ->orderByDesc('score');
+
+        // Paginate the results
+        $posts = $posts->paginate(10);
+
+        // Return the paginated results as JSON
+        return response()->json($posts);
+    }
 }

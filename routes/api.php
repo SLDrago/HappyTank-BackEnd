@@ -18,6 +18,7 @@ use App\Http\Controllers\ContactUsController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\CommentController;
+use Laravel\Jetstream\Rules\Role;
 
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
@@ -72,6 +73,7 @@ Route::post('/ai/generateFishTankImage', [AiController::class, 'generateFishTank
 Route::post('/contact', [ContactUsController::class, 'store']);
 
 Route::get('/posts', [PostController::class, 'index']);
+Route::post('/posts/search', [PostController::class, 'search']);
 
 //Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -129,6 +131,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/posts/{post}', [PostController::class, 'destroy']);
         Route::post('/posts/report', [PostController::class, 'report']);
         Route::get('/getPost/{post}', [PostController::class, 'getPost']);
+        Route::get('/posts/getUserPosts', [PostController::class, 'getUserPosts']);
         // User and Shop routes
     });
 
