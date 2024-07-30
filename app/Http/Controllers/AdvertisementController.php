@@ -121,6 +121,7 @@ class AdvertisementController extends Controller
                 'image_url.*' => 'required|file|image|max:10240',
                 'price' => 'required|numeric',
                 'price_based_on' => 'required|string',
+                'discount' => 'sometimes|required|numeric',
                 'category_id' => 'required|exists:categories,id',
                 'tags' => 'required|string'
             ]);
@@ -149,6 +150,7 @@ class AdvertisementController extends Controller
                 'description' => $fields['description'],
                 'price' => $fields['price'],
                 'price_based_on' => $fields['price_based_on'],
+                'discount' => $fields['discount'],
                 'category_id' => $fields['category_id'],
                 'tags' => $fields['tags'],
                 'user_id' => $user_id
@@ -210,6 +212,7 @@ class AdvertisementController extends Controller
                 'description' => 'sometimes|required|string',
                 'price' => 'sometimes|required|numeric',
                 'price_based_on' => 'sometimes|required|string',
+                'discount' => 'sometimes|required|numeric',
                 'category_id' => 'sometimes|required|exists:categories,id',
                 'tags' => 'sometimes|required|string'
             ]);
@@ -271,6 +274,7 @@ class AdvertisementController extends Controller
                 'image_url' => 'sometimes|file|image|max:10240', // Assuming a max size of 10MB for the image
                 'price' => 'sometimes|required|numeric',
                 'price_based_on' => 'sometimes|required|string',
+                'discount' => 'sometimes|required|numeric',
                 'category_id' => 'sometimes|required|exists:categories,id',
                 'tags' => 'sometimes|required|string'
             ]);
@@ -416,8 +420,8 @@ class AdvertisementController extends Controller
             // Query to get advertisements with the highest ratings
             $topRatedAdvertisements = Advertisement::with('images') // Eager load images relationship
                 ->leftJoin('reviews', 'advertisements.id', '=', 'reviews.advertisement_id')
-                ->select('advertisements.id', 'advertisements.title', 'advertisements.small_description', 'advertisements.price', 'advertisements.created_at', 'advertisements.updated_at', DB::raw('AVG(reviews.rating) as avg_rating'))
-                ->groupBy('advertisements.id', 'advertisements.title', 'advertisements.small_description', 'advertisements.price', 'advertisements.created_at', 'advertisements.updated_at')
+                ->select('advertisements.id', 'advertisements.title', 'advertisements.small_description', 'advertisements.price', 'advertisements.discount', 'advertisements.created_at', 'advertisements.updated_at', DB::raw('AVG(reviews.rating) as avg_rating'))
+                ->groupBy('advertisements.id', 'advertisements.title', 'advertisements.small_description', 'advertisements.price', 'advertisements.discount', 'advertisements.created_at', 'advertisements.updated_at')
                 ->orderByDesc('avg_rating')
                 ->limit(6) // Limit the number of top-rated advertisements
                 ->get();
@@ -431,6 +435,7 @@ class AdvertisementController extends Controller
                     'title' => $advertisement->title,
                     'small_description' => $advertisement->small_description,
                     'price' => $advertisement->price,
+                    'discount' => $advertisement->discount,
                     'rating' => $advertisement->avg_rating,
                     'image_url' => $image,
                 ];
@@ -545,6 +550,7 @@ class AdvertisementController extends Controller
                     'title' => $advertisement->title,
                     'small_description' => $advertisement->small_description,
                     'price' => $advertisement->price,
+                    'discount' => $advertisement->discount,
                     'image_url' => $image,
                     'avg_review' => $advertisement->reviews_avg_rating ?? 0, // If no reviews, default to 0
                     'review_count' => $advertisement->reviews_count ?? 0, // If no reviews, default to 0
@@ -648,6 +654,7 @@ class AdvertisementController extends Controller
                     'title' => $advertisement->title,
                     'small_description' => $advertisement->small_description,
                     'price' => $advertisement->price,
+                    'discount' => $advertisement->discount,
                     'image_url' => $image,
                     'avg_review' => $advertisement->reviews_avg_rating ?? 0, // If no reviews, default to 0
                     'review_count' => $advertisement->reviews_count ?? 0, // If no reviews, default to 0
@@ -742,6 +749,7 @@ class AdvertisementController extends Controller
                     'title' => $advertisement->title,
                     'small_description' => $advertisement->small_description,
                     'price' => $advertisement->price,
+                    'discount' => $advertisement->discount,
                     'image_url' => $image,
                     'avg_review' => $advertisement->reviews_avg_rating ?? 0, // If no reviews, default to 0
                     'review_count' => $advertisement->reviews_count ?? 0, // If no reviews, default to 0
@@ -830,6 +838,120 @@ class AdvertisementController extends Controller
             return response()->json(['message' => 'Advertisement image added successfully'], 200);
         } catch (Exception $e) {
             return response()->json(['message' => 'Failed to add advertisement image', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getDiscountedAdvertisements(Request $request)
+    {
+        try {
+            $discountedAdvertisements = Advertisement::with('images')
+                ->where('discount', '>', 0)
+                ->get();
+
+            $response = [];
+            foreach ($discountedAdvertisements as $advertisement) {
+                $image = $advertisement->images->isNotEmpty() ? $advertisement->images->first()->image_url : null;
+                $response[] = [
+                    'id' => $advertisement->id,
+                    'title' => $advertisement->title,
+                    'small_description' => $advertisement->small_description,
+                    'price' => $advertisement->price,
+                    'discount' => $advertisement->discount,
+                    'image_url' => $image,
+                ];
+            }
+
+            return response()->json(['discounted_advertisements' => $response], 200);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'Failed to retrieve discounted advertisements', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function filterAdvertisementsDiscounts(Request $request)
+    {
+        try {
+            $request->validate([
+                'search' => 'nullable|string',
+                'category' => 'nullable|string',
+                'city' => 'nullable|string',
+                'min_price' => 'nullable|numeric|min:0',
+                'max_price' => 'nullable|numeric|min:0',
+                'page' => 'nullable|integer|min:1',
+                'per_page' => 'nullable|integer|min:6',
+            ]);
+
+            $search = $request->search;
+            $category = $request->category;
+            $city = $request->city;
+            $minPrice = $request->min_price;
+            $maxPrice = $request->max_price;
+            $page = $request->page ?? 1;
+            $perPage = $request->per_page ?? 6;
+
+            $query = Advertisement::query();
+
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('title', 'like', "%$search%")
+                        ->orWhere('small_description', 'like', "%$search%")
+                        ->orWhere('tags', 'like', "%$search%")
+                        ->orWhere('description', 'like', "%$search%");
+                });
+            }
+
+            if ($category) {
+                $query->where('category_id', $category);
+            }
+
+            if ($city) {
+                $userIds = UserInfo::where('city_id', $city)->pluck('user_id')
+                    ->merge(ShopInfo::where('city_id', $city)->pluck('user_id'))
+                    ->unique();
+
+                $query->whereIn('user_id', $userIds);
+            }
+
+            if ($minPrice !== null) {
+                $query->where('price', '>=', $minPrice);
+            }
+            if ($maxPrice !== null) {
+                $query->where('price', '<=', $maxPrice);
+            }
+
+            $query->where('discount', '>', 0);
+            $query->withCount('reviews');
+            $query->withAvg('reviews', 'rating');
+
+            $advertisements = $query->with('images')
+                ->orderBy('created_at', 'desc')
+                ->paginate($perPage, ['*'], 'page', $page);
+
+            $response = [];
+            foreach ($advertisements as $advertisement) {
+                $image = $advertisement->images->isNotEmpty() ? $advertisement->images->first()->image_url : null;
+                $response[] = [
+                    'id' => $advertisement->id,
+                    'title' => $advertisement->title,
+                    'small_description' => $advertisement->small_description,
+                    'price' => $advertisement->price,
+                    'discount' => $advertisement->discount,
+                    'image_url' => $image,
+                    'avg_review' => $advertisement->reviews_avg_rating ?? 0, // If no reviews, default to 0
+                    'review_count' => $advertisement->reviews_count ?? 0, // If no reviews, default to 0
+                ];
+            }
+
+            return response()->json([
+                'advertisements' => $response,
+                'meta' => [
+                    'current_page' => $advertisements->currentPage(),
+                    'last_page' => $advertisements->lastPage(),
+                    'per_page' => $advertisements->perPage(),
+                    'total' => $advertisements->total(),
+                ]
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'Failed to filter advertisements', 'error' => $e->getMessage()], 500);
         }
     }
 }

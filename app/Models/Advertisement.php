@@ -17,6 +17,7 @@ class Advertisement extends Model
         'description',
         'price',
         'price_based_on',
+        'discount',
         'category_id',
         'status',
         'tags',

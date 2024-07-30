@@ -18,6 +18,7 @@ return new class extends Migration
             $table->text('description');
             $table->decimal('price', 10, 2);
             $table->string('price_based_on');
+            $table->float('discount');
             $table->unsignedBigInteger('category_id');
             $table->boolean('status')->default(true);
             $table->string('tags');
