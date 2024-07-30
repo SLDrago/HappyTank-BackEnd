@@ -49,6 +49,8 @@ Route::post('/advertisement/searchRelatedAdvertisements', [AdvertisementControll
 Route::post('/advertisement/searchRelatedFishAdvertisements', [AdvertisementController::class, 'searchRelatedFishAdvertisements']);
 Route::post('/advertisement/getAdvertisementById', [AdvertisementController::class, 'getAdvertisementById']);
 Route::post('/advertisement/getAdvertisementImagesByAdId', [AdvertisementController::class, 'getAdvertisementImagesByAdId']);
+Route::get('/advertisement/getDiscountedAdvertisements', [AdvertisementController::class, 'getDiscountedAdvertisements']);
+Route::post('/advertisement/filterAdvertisementsDiscounts', [AdvertisementController::class, 'filterAdvertisementsDiscounts']);
 
 Route::post('/review/getRatingCounts', [ReviewController::class, 'getRatingCounts']);
 Route::post('/review/showReviewByID', [ReviewController::class, 'showReviewByID']);
