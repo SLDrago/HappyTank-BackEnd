@@ -4,9 +4,14 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Fishdata;
+use App\Models\FishImage;
 use App\Services\RangeAnalyseService;
 use App\Services\SizeAnalyseService;
 use App\Services\AggressivenessService;
+use App\Http\Controllers\FishImageController;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
+
 
 
 class FishController extends Controller
@@ -60,24 +65,58 @@ class FishController extends Controller
     public function addFish(Request $request)
     {
         $request->validate([
-            'common_name' => 'required|string|max:255',
-            'scientific_name' => 'required|string|max:255',
-            'aquarium_size' => 'required|string|max:255',
-            'habitat' => 'string|max:1000',
-            'max_standard_length' => 'required|string|max:255',
-            'temperature' => 'required|string|max:255',
-            'ph' => 'required|string|max:255',
+            'commonName' => 'required|string|max:255',
+            'scientificName' => 'required|string|max:255',
+            'aquariumSize' => 'required|string',
+            'habitat' => 'nullable|string|max:1000',
+            'maxStandardLengthMax' => 'required|numeric|min:1',
+            'maxStandardLengthMin' => 'required|numeric|min:1|lt:maxStandardLengthMax',
+            'temperatureMax' => 'required|numeric|min:1',
+            'temperatureMin' => 'required|numeric|min:1|lt:temperatureMax',
+            'phMax' => 'required|numeric|min:1',
+            'phMin' => 'required|numeric|min:1|lt:phMax',
             'diet' => 'required|string|max:255',
-            'behavior' => 'required|string|max:255|in:Aggressive,Aggressive-Small,Not-Aggressive',
-            'sexual_dimorphisms' => 'required|string|max:500',
+            'behavior' => 'required|string|max:255',
+            'sexualDimorphysm' => 'required|string|max:500',
             'reproduction' => 'required|string|max:1000',
-            'notes' => 'required|string|max:1000',
+            'notes' => 'nullable|string|max:1000',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048'
         ]);
 
-        $fish = $this->fish->create($request->all());
+        $fishData = [
+            'common_name' => $request->commonName,
+            'scientific_name' => $request->scientificName,
+            'aquarium_size' => $request->aquariumSize,
+            'habitat' => $request->habitat,
+            'max_standard_length' => $request->maxStandardLengthMin . '-' . $request->maxStandardLengthMax,
+            'temperature' => $request->temperatureMin . '-' . $request->temperatureMax,
+            'ph' => $request->phMin . '-' . $request->phMax,
+            'diet' => $request->diet,
+            'behavior' => $request->behavior,
+            'sexual_dimorphisms' => $request->sexualDimorphysm,
+            'reproduction' => $request->reproduction,
+            'notes' => $request->notes,
+        ];
 
-        return response()->json($fish, 201);
+        // Save the fish record
+        $fish = $this->fish->create($fishData);
+
+        // Add fish_id to the request
+        $request->merge(['fish_id' => $fish->id]);
+
+        // Call the image upload function and pass the modified request
+        $imageController = new FishImageController();
+        $result = $imageController->store($request);
+
+        // Handle image upload failure
+        if (!$result) {
+            $fish->delete();
+            return response()->json(['message' => 'Failed to upload image. Fish data not saved.'], 500);
+        }
+
+        return response()->json(['message' => 'Fish added successfully']);
     }
+
 
     public function updateFish(Request $request)
     {
@@ -97,7 +136,7 @@ class FishController extends Controller
         ]);
 
         $id = $request->validate([
-            'id' => 'required|integer'
+            'id' => 'required|integer',
         ])['id'];
 
         $fish = $this->fish->find($id);
@@ -105,9 +144,26 @@ class FishController extends Controller
         if (!$fish) {
             return response()->json(['message' => 'Fish not found'], 404);
         }
+
+        if ($request->hasFile('image')) {
+            if ($fish->image) {
+                $oldImagePath = public_path($fish->image);
+                if (File::exists($oldImagePath)) {
+                    File::delete($oldImagePath);
+                }
+            }
+
+            $image = $request->validate([
+                'image' => 'sometimes|required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            ]);
+
+            $imagePath = $request->file('image')->store('fish_images', 'public');
+            $fish->image = '/storage/' . $imagePath;
+        }
+
         $fish->update($data);
 
-        return response()->json($fish);
+        return response()->json(['message' => 'Fish Updated Successfully']);
     }
 
     public function removeFish(Request $request)
@@ -117,16 +173,27 @@ class FishController extends Controller
         ]);
 
         $id = $data['id'];
+
         $fish = $this->fish->find($id);
 
         if (!$fish) {
             return response()->json(['message' => 'Fish not found'], 404);
         }
 
+        $fishImage = FishImage::where('fish_id', $id)->first();
+
+        if ($fishImage) {
+            $relativePath = str_replace('/storage/', '', $fishImage->image);
+            Storage::disk('public')->delete($relativePath);
+
+            $fishImage->delete();
+        }
+
         $fish->delete();
 
-        return response()->json(['message' => 'Fish deleted successfully']);
+        return response()->json(['message' => 'Fish and associated image deleted successfully']);
     }
+
 
     public function getFishByIdWithImages(Request $request)
     {
