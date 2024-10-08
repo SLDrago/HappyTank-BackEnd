@@ -9,12 +9,6 @@ use Illuminate\Support\Facades\Auth;
 
 class InformationController extends Controller
 {
-    /**
-     * Check if shop information exists for the authenticated user.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function hasShopInfo(Request $request)
     {
         // Retrieve the authenticated user
@@ -27,12 +21,6 @@ class InformationController extends Controller
         return response()->json(['has_shop_info' => $hasShopInfo], 200);
     }
 
-    /**
-     * Get shop information for the authenticated user.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function getShopInfo(Request $request)
     {
         // Retrieve the authenticated user
@@ -50,12 +38,6 @@ class InformationController extends Controller
         return response()->json(['shop_info' => $shopInfo], 200);
     }
 
-    /**
-     * Update shop information for the authenticated user.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function updateShopInfo(Request $request)
     {
         // Validate incoming request data
