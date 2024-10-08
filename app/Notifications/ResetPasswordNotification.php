@@ -4,9 +4,15 @@ namespace App\Notifications;
 
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Facades\Lang;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Bus\Queueable;
+use Illuminate\Support\Facades\Mail;
 
-class ResetPasswordNotification extends Notification
+class ResetPasswordNotification extends Notification implements ShouldQueue
 {
+    use Queueable;
+
     public $token;
     public $email;
 
@@ -23,13 +29,12 @@ class ResetPasswordNotification extends Notification
 
     public function toMail($notifiable)
     {
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
-        $actionUrl = $frontendUrl . '/reset-password?token=' . urlencode($this->token) . '&email=' . urlencode($notifiable->email);
+        $frontendUrl = env('FRONTEND_URL') ?: 'http://localhost:5173';
+        $actionUrl = $frontendUrl . '/reset-password?token=' . urlencode($this->token) . '&email=' . urlencode($this->email);
 
+        // Use custom Blade template for email
         return (new MailMessage)
-            ->subject(__('Reset Password Notification'))
-            ->line(__('You are receiving this email because we received a password reset request for your account.'))
-            ->action(__('Reset Password'), $actionUrl)
-            ->line(__('If you did not request a password reset, no further action is required.'));
+            ->view('emails.reset_password', ['actionUrl' => $actionUrl])
+            ->subject(__('Reset Password Notification'));
     }
 }
