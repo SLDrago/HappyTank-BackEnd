@@ -88,7 +88,7 @@
             <p>If you have any questions or need further assistance, feel free to reach out to us.</p>
         </div>
         <div class="button">
-            <a href="http://localhost:5173/" target="_blank">Contact Support</a>
+            <a href="http://localhost:4173/" target="_blank">Contact Support</a>
         </div>
         <div class="footer">
             <p>&copy; {{ date('Y') }} HappyTank. All rights reserved.</p>
