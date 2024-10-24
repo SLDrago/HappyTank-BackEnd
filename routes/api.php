@@ -18,6 +18,7 @@ use App\Http\Controllers\ContactUsController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\DashboardController;
 use Laravel\Jetstream\Rules\Role;
 
 // Route::get('/user', function (Request $request) {
@@ -51,6 +52,7 @@ Route::post('/advertisement/getAdvertisementById', [AdvertisementController::cla
 Route::post('/advertisement/getAdvertisementImagesByAdId', [AdvertisementController::class, 'getAdvertisementImagesByAdId']);
 Route::get('/advertisement/getDiscountedAdvertisements', [AdvertisementController::class, 'getDiscountedAdvertisements']);
 Route::post('/advertisement/filterAdvertisementsDiscounts', [AdvertisementController::class, 'filterAdvertisementsDiscounts']);
+Route::post('/advertisement/getAllAdvertisementDetails', [AdvertisementController::class, 'getAllAdvertisementDetails']);
 
 Route::post('/review/getRatingCounts', [ReviewController::class, 'getRatingCounts']);
 Route::post('/review/showReviewByID', [ReviewController::class, 'showReviewByID']);
@@ -76,6 +78,10 @@ Route::post('/contact', [ContactUsController::class, 'store']);
 
 Route::get('/posts', [PostController::class, 'index']);
 Route::post('/posts/search', [PostController::class, 'search']);
+
+Route::post('/report/showReportedAdvertisements', [ReportedContentController::class, 'showReportedAdvertisements']); //should be admin only
+Route::post('/report/showReportedPosts', [ReportedContentController::class, 'showReportedPosts']); //should be admin only
+Route::post('/analytics/getDashboardData', [DashboardController::class, 'getDashboardData']); //should be admin only
 
 //Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -146,6 +152,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/report/updateReport', [ReportedContentController::class, 'updateReport']);
         Route::post('/report/destroyReport', [ReportedContentController::class, 'destroyReport']);
         Route::post('/report/showReportsByType', [ReportedContentController::class, 'showReportsByType']);
+        Route::post('/report/getReportedAdvertisementById', [ReportedContentController::class, 'getReportedAdvertisementById']);
+        Route::post('/report/getReportedPostsById', [ReportedContentController::class, 'getReportedPostsById']);
+
 
         Route::post('/category/addCategory', [CategoryController::class, 'addCategory']);
         Route::post('/category/updateCategory', [CategoryController::class, 'updateCategory']);
@@ -157,7 +166,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/fish/addFish', [FishController::class, 'addFish']);
         Route::post('/fish/updateFish', [FishController::class, 'updateFish']);
-        Route::post('/fish/deleteFish', [FishController::class, 'deleteFish']);
+        Route::post('/fish/deleteFish', [FishController::class, 'removeFish']);
 
         Route::post('/fish/addFishImage', [FishImageController::class, 'store']);
 

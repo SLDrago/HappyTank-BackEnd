@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\UserInfo;
 use App\Models\ShopInfo;
 use App\Models\Advertisement;
+use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -30,8 +31,7 @@ class AdvertisementController extends Controller
 
     public function get_topAdvertisements(Request $request)
     {
-        // Fetch top advertisements based on views
-        $topAdvertisements = $this->advertisement->orderBy('views', 'desc')->take(6)->get();
+        $topAdvertisements = $this->advertisement->where('advertisements.status', '1')->orderBy('views', 'desc')->take(6)->get();
         return response()->json($topAdvertisements);
     }
 
@@ -323,15 +323,12 @@ class AdvertisementController extends Controller
     public function getUserAdvertisements(Request $request)
     {
         try {
-            // Get authenticated user ID
             $user_id = Auth::id();
 
-            // Fetch user's advertisements with required fields
             $advertisements = Advertisement::where('user_id', $user_id)
                 ->with(['category', 'images'])
                 ->get(['id', 'title', 'small_description', 'category_id']);
 
-            // Prepare response with required fields and associated category name
             $response = $advertisements->map(function ($advertisement) {
                 return [
                     'id' => $advertisement->id,
@@ -417,16 +414,15 @@ class AdvertisementController extends Controller
     public function getTopRatedAdvertisements(Request $request)
     {
         try {
-            // Query to get advertisements with the highest ratings
-            $topRatedAdvertisements = Advertisement::with('images') // Eager load images relationship
+            $topRatedAdvertisements = Advertisement::with('images')
                 ->leftJoin('reviews', 'advertisements.id', '=', 'reviews.advertisement_id')
                 ->select('advertisements.id', 'advertisements.title', 'advertisements.small_description', 'advertisements.price', 'advertisements.discount', 'advertisements.created_at', 'advertisements.updated_at', DB::raw('AVG(reviews.rating) as avg_rating'))
+                ->where('advertisements.status', '1')
                 ->groupBy('advertisements.id', 'advertisements.title', 'advertisements.small_description', 'advertisements.price', 'advertisements.discount', 'advertisements.created_at', 'advertisements.updated_at')
                 ->orderByDesc('avg_rating')
-                ->limit(6) // Limit the number of top-rated advertisements
+                ->limit(6)
                 ->get();
 
-            // Prepare response with one image for each advertisement
             $response = [];
             foreach ($topRatedAdvertisements as $advertisement) {
                 $image = $advertisement->images->isNotEmpty() ? $advertisement->images->first()->image_url : null;
@@ -505,7 +501,7 @@ class AdvertisementController extends Controller
             $page = $request->page ?? 1;
             $perPage = $request->per_page ?? 6;
 
-            $query = Advertisement::query();
+            $query = Advertisement::query()->where('advertisements.status', '1');
 
             if ($search) {
                 $query->where(function ($q) use ($search) {
@@ -703,25 +699,20 @@ class AdvertisementController extends Controller
     public function searchRelatedFishAdvertisements(Request $request)
     {
         try {
-            // Validate request
             $request->validate([
                 'fish_name' => 'required|string',
                 'page' => 'nullable|integer|min:1',
                 'per_page' => 'nullable|integer|min:6',
             ]);
 
-            // Extract parameters from the request
             $fishNames = $request->fish_name;
             $page = $request->page ?? 1;
             $perPage = $request->per_page ?? 6;
 
-            // Split fish names into an array
             $fishNamesArray = array_map('trim', explode(' ', $fishNames));
 
-            // Start building the query
-            $query = Advertisement::query();
+            $query = Advertisement::query()->where('advertisements.status', '1');
 
-            // Apply search by fish names
             $query->where(function ($q) use ($fishNamesArray) {
                 foreach ($fishNamesArray as $fishName) {
                     $q->orWhere('title', 'like', "%$fishName%")
@@ -731,16 +722,13 @@ class AdvertisementController extends Controller
                 }
             });
 
-            // Eager load reviews relationship
             $query->withCount('reviews');
             $query->withAvg('reviews', 'rating');
 
-            // Paginate the results
             $advertisements = $query->with('images')
                 ->orderBy('created_at', 'desc')
                 ->paginate($perPage, ['*'], 'page', $page);
 
-            // Prepare response with advertisement data and additional information
             $response = [];
             foreach ($advertisements as $advertisement) {
                 $image = $advertisement->images->isNotEmpty() ? $advertisement->images->first()->image_url : null;
@@ -751,8 +739,8 @@ class AdvertisementController extends Controller
                     'price' => $advertisement->price,
                     'discount' => $advertisement->discount,
                     'image_url' => $image,
-                    'avg_review' => $advertisement->reviews_avg_rating ?? 0, // If no reviews, default to 0
-                    'review_count' => $advertisement->reviews_count ?? 0, // If no reviews, default to 0
+                    'avg_review' => $advertisement->reviews_avg_rating ?? 0,
+                    'review_count' => $advertisement->reviews_count ?? 0,
                 ];
             }
 
@@ -846,6 +834,7 @@ class AdvertisementController extends Controller
         try {
             $discountedAdvertisements = Advertisement::with('images')
                 ->where('discount', '>', 0)
+                ->where('advertisements.status', '1')
                 ->get();
 
             $response = [];
@@ -888,7 +877,7 @@ class AdvertisementController extends Controller
             $page = $request->page ?? 1;
             $perPage = $request->per_page ?? 6;
 
-            $query = Advertisement::query();
+            $query = Advertisement::query()->where('advertisements.status', '1');
 
             if ($search) {
                 $query->where(function ($q) use ($search) {
@@ -952,6 +941,144 @@ class AdvertisementController extends Controller
             ], 200);
         } catch (Exception $e) {
             return response()->json(['message' => 'Failed to filter advertisements', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getAllAdvertisementDetails(Request $request)
+    {
+        try {
+            $request->validate([
+                'id' => 'nullable|exists:advertisements,id',
+                'page' => 'nullable|integer|min:1',
+                'per_page' => 'nullable|integer|min:1|max:12',
+            ]);
+
+            $advertisementId = $request->id;
+
+            $page = $request->page ?? 1;
+            $perPage = $request->per_page ?? 6;
+
+            $response = [];
+
+            if ($advertisementId) {
+                $advertisement = Advertisement::with('user', 'images')->findOrFail($advertisementId);
+
+                $user = $advertisement->user;
+                $userInformation = [
+                    'profile_photo_path' => $user->profile_photo_path,
+                    'email' => $user->email,
+                    'name' => $user->name,
+                ];
+
+                if ($user->role === 'user') {
+                    $additionalInformation = UserInfo::where('user_id', $user->id)->first();
+                } elseif ($user->role === 'shop') {
+                    $additionalInformation = ShopInfo::where('user_id', $user->id)->first();
+                }
+
+                $response['advertisement'] = [
+                    'advertisement' => $advertisement,
+                    'user_information' => array_merge($userInformation, $additionalInformation ? $additionalInformation->toArray() : []),
+                ];
+
+                $reviewsQuery = Review::where('advertisement_id', $advertisementId)
+                    ->with('user')
+                    ->orderBy('created_at', 'desc');
+
+                $reviewCount = $reviewsQuery->count();
+                $avgRating = $reviewsQuery->avg('rating');
+
+                $paginatedReviews = $reviewsQuery->paginate($perPage, ['*'], 'page', $page);
+
+                $formattedReviews = [];
+                foreach ($paginatedReviews->items() as $review) {
+                    $formattedReviews[] = [
+                        'rating' => $review->rating,
+                        'title' => $review->title,
+                        'review_text' => $review->review_text,
+                        'user_name' => $review->user->name,
+                        'date' => \Carbon\Carbon::parse($review->created_at)->format('d F Y'),
+                    ];
+                }
+
+                $response['reviews'] = [
+                    'review_count' => $reviewCount,
+                    'avg_rating' => $avgRating,
+                    'reviews' => $formattedReviews,
+                    'pagination' => [
+                        'current_page' => $paginatedReviews->currentPage(),
+                        'last_page' => $paginatedReviews->lastPage(),
+                        'per_page' => $paginatedReviews->perPage(),
+                        'total' => $paginatedReviews->total(),
+                    ],
+                ];
+            }
+
+            $relatedAdvertisementsQuery = Advertisement::with('images')
+                ->withCount('reviews')
+                ->withAvg('reviews', 'rating')
+                ->where('advertisements.status', '1')
+                ->orderBy('created_at', 'desc');
+
+            $tags = Advertisement::distinct()->pluck('tags')->filter()->toArray();
+
+
+            $cities = UserInfo::distinct()->pluck('city_id')->merge(ShopInfo::distinct()->pluck('city_id'))->filter()->toArray();
+
+            if (!empty($tags)) {
+                $relatedAdvertisementsQuery->where(function ($query) use ($tags) {
+                    foreach ($tags as $tagString) {
+                        $individualTags = explode(',', $tagString);
+                        foreach ($individualTags as $tag) {
+                            $trimmedTag = trim($tag);
+                            $query->orWhere(function ($q) use ($trimmedTag) {
+                                $q->where('advertisements.status', '1')
+                                    ->where(function ($q2) use ($trimmedTag) {
+                                        $q2->orWhere('tags', 'like', "%$trimmedTag%")
+                                            ->orWhere('title', 'like', "%$trimmedTag%")
+                                            ->orWhere('small_description', 'like', "%$trimmedTag%")
+                                            ->orWhere('description', 'like', "%$trimmedTag%");
+                                    });
+                            });
+                        }
+                    }
+                });
+            }
+
+            if (!empty($cities)) {
+                $userIds = UserInfo::whereIn('city_id', $cities)->pluck('user_id')
+                    ->merge(ShopInfo::whereIn('city_id', $cities)->pluck('user_id'))
+                    ->unique();
+                $relatedAdvertisementsQuery->whereIn('user_id', $userIds);
+            }
+
+            $relatedAdvertisements = $relatedAdvertisementsQuery->paginate($perPage, ['*'], 'page', $page);
+
+            $formattedAds = [];
+            foreach ($relatedAdvertisements->items() as $advertisement) {
+                $image = $advertisement->images->isNotEmpty() ? $advertisement->images->first()->image_url : null;
+                $formattedAds[] = [
+                    'id' => $advertisement->id,
+                    'title' => $advertisement->title,
+                    'small_description' => $advertisement->small_description,
+                    'price' => $advertisement->price,
+                    'discount' => $advertisement->discount,
+                    'image_url' => $image,
+                    'avg_review' => $advertisement->reviews_avg_rating ?? 0,
+                    'review_count' => $advertisement->reviews_count ?? 0,
+                ];
+            }
+
+            $response['related_advertisements'] = $formattedAds;
+
+            //incerase the view count of the advertisement
+            if ($advertisementId) {
+                $advertisement->increment('views');
+            }
+
+            return response()->json($response, 200);
+        } catch (Exception $e) {
+            return response()->json(['message' => 'Failed to retrieve advertisement details', 'error' => $e->getMessage()], 500);
         }
     }
 }

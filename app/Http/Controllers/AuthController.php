@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use App\Notifications\ResetPasswordNotification;
+use App\Mail\PasswordChangedNotification;
+use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
@@ -65,10 +67,7 @@ class AuthController extends Controller
         $request->validate(['email' => 'required|email']);
 
         $status = Password::sendResetLink(
-            $request->only('email'),
-            function ($user, $token) {
-                $user->notify(new ResetPasswordNotification($token, $user->email));
-            }
+            $request->only('email')
         );
 
         if ($status == Password::RESET_LINK_SENT) {
@@ -79,6 +78,7 @@ class AuthController extends Controller
             'email' => [trans($status)],
         ]);
     }
+
 
     public function resetPassword(Request $request)
     {
@@ -96,6 +96,8 @@ class AuthController extends Controller
                 ])->save();
 
                 $user->tokens()->delete();
+
+                Mail::to($user->email)->send(new PasswordChangedNotification());
             }
         );
 
