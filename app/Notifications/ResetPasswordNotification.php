@@ -29,7 +29,7 @@ class ResetPasswordNotification extends Notification implements ShouldQueue
 
     public function toMail($notifiable)
     {
-        $frontendUrl = env('FRONTEND_URL') ?: 'http://localhost:5173';
+        $frontendUrl = env('FRONTEND_URL') ?: 'http://localhost:4173';
         $actionUrl = $frontendUrl . '/reset-password?token=' . urlencode($this->token) . '&email=' . urlencode($this->email);
 
         // Use custom Blade template for email
