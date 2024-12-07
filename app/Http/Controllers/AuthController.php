@@ -67,7 +67,10 @@ class AuthController extends Controller
         $request->validate(['email' => 'required|email']);
 
         $status = Password::sendResetLink(
-            $request->only('email')
+            $request->only('email'),
+            function ($user, $token) {
+                $user->notify(new ResetPasswordNotification($token, $user->email));
+            }
         );
 
         if ($status == Password::RESET_LINK_SENT) {
